@@ -100,7 +100,6 @@ namespace Intersect.Editor.Forms
             this.rbClientAssets.TabIndex = 0;
             this.rbClientAssets.TabStop = true;
             this.rbClientAssets.Text = "Client Assets";
-            this.rbClientAssets.UseVisualStyleBackColor = true;
             //
             // rbEditorAssets
             //
@@ -111,7 +110,6 @@ namespace Intersect.Editor.Forms
             this.rbEditorAssets.Size = new System.Drawing.Size(86, 17);
             this.rbEditorAssets.TabIndex = 1;
             this.rbEditorAssets.Text = "Editor Assets";
-            this.rbEditorAssets.UseVisualStyleBackColor = true;
             //
             // lblDirectory
             //

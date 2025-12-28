@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
 using Intersect.Configuration;
+using Intersect.Editor.Core;
 using Intersect.Editor.General;
 using Intersect.Editor.Localization;
 using Intersect.Web;
@@ -104,7 +105,7 @@ public partial class FrmUploadToServer : DarkDialog
             DarkMessageBox.ShowError(
                 Strings.UploadToServer.InvalidUrl,
                 Strings.UploadToServer.Title,
-                DarkUI.Controls.DarkDialogButton.Ok,
+                DarkDialogButton.Ok,
                 Icon
             );
             return;
@@ -115,7 +116,7 @@ public partial class FrmUploadToServer : DarkDialog
             DarkMessageBox.ShowError(
                 Strings.UploadToServer.InvalidDirectory,
                 Strings.UploadToServer.Title,
-                DarkUI.Controls.DarkDialogButton.Ok,
+                DarkDialogButton.Ok,
                 Icon
             );
             return;
@@ -142,7 +143,7 @@ public partial class FrmUploadToServer : DarkDialog
             DarkMessageBox.ShowError(
                 Strings.UploadToServer.Error.ToString(ex.Message),
                 Strings.UploadToServer.Failed,
-                DarkUI.Controls.DarkDialogButton.Ok,
+                DarkDialogButton.Ok,
                 Icon
             );
         }
@@ -215,7 +216,7 @@ public partial class FrmUploadToServer : DarkDialog
         DarkMessageBox.ShowInformation(
             Strings.UploadToServer.Success,
             Strings.UploadToServer.Completed,
-            DarkUI.Controls.DarkDialogButton.Ok,
+            DarkDialogButton.Ok,
             Icon
         );
     }
