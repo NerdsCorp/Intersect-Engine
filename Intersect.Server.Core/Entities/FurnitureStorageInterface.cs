@@ -255,39 +255,3 @@ public partial class FurnitureStorageInterface : IDisposable
         SaveStorage();
     }
 }
-
-// Placeholder packet classes
-namespace Intersect.Network.Packets.Server
-{
-    public partial class FurnitureStoragePacket
-    {
-        public FurnitureStoragePacket(bool close, int slots, FurnitureStorageUpdatePacket[] updates)
-        {
-            // Packet implementation
-        }
-    }
-
-    public partial class FurnitureStorageUpdatePacket
-    {
-        public FurnitureStorageUpdatePacket(int slot, Guid itemId, int quantity, Guid? bagId, string properties)
-        {
-            // Packet implementation
-        }
-    }
-}
-
-// Placeholder localization strings
-namespace Intersect.Server.Localization
-{
-    public partial class Strings
-    {
-        public static class FurnitureStorage
-        {
-            public static LocalizedString DepositInvalid = @"Invalid item to deposit.";
-            public static LocalizedString NoSpace = @"No space in storage.";
-            public static LocalizedString InventoryFull = @"Your inventory is full.";
-            public static LocalizedString DepositSuccess => new LocalizedString(@"Deposited {0}x {1}.");
-            public static LocalizedString WithdrawSuccess => new LocalizedString(@"Withdrew {0}x {1}.");
-        }
-    }
-}

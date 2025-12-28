@@ -130,6 +130,20 @@ public enum EventCommandType
 
     //End Guilds
 
+    //Player Housing
+    PurchaseHouse,
+    EnterHouse,
+    OpenHouseFurniture,
+    InviteToHouse,
+    RemoveHouseVisitor,
+    SetHousePublic,
+    SetHouseName,
+    SetHouseDescription,
+    RateHouse,
+    OpenFurnitureStorage,
+
+    //End Player Housing
+
     //Reset Stats
     ResetStatPointAllocations,
 
