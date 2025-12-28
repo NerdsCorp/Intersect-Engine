@@ -25,6 +25,13 @@ public partial class FrmUploadToServer : DarkDialog
         InitializeComponent();
         Icon = Program.Icon;
         LoadSettings();
+        FormClosing += FrmUploadToServer_FormClosing;
+    }
+
+    private void FrmUploadToServer_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        // Save settings when form is closing
+        SaveSettings();
     }
 
     private void LoadSettings()
@@ -44,6 +51,14 @@ public partial class FrmUploadToServer : DarkDialog
         rbEditorAssets.Checked = savedType == "editor";
         rbClientAssets.Checked = !rbEditorAssets.Checked;
 
+        var savedDirectory = Preferences.LoadPreference("upload_lastDirectory");
+        if (!string.IsNullOrWhiteSpace(savedDirectory) && Directory.Exists(savedDirectory))
+        {
+            _selectedDirectory = savedDirectory;
+            txtDirectory.Text = savedDirectory;
+            btnUpload.Enabled = true;
+        }
+
         var rawTokenResponse = Preferences.LoadPreference(nameof(TokenResponse));
         if (!string.IsNullOrWhiteSpace(rawTokenResponse))
         {
@@ -55,6 +70,20 @@ public partial class FrmUploadToServer : DarkDialog
             {
                 _tokenResponse = null;
             }
+        }
+
+        UpdateAuthenticationStatus();
+    }
+
+    private void UpdateAuthenticationStatus()
+    {
+        if (_tokenResponse != null)
+        {
+            lblStatus.Text = "✓ Authenticated";
+        }
+        else
+        {
+            lblStatus.Text = "⚠ Not authenticated - login through the editor first";
         }
     }
 
@@ -184,9 +213,11 @@ public partial class FrmUploadToServer : DarkDialog
         {
             var batch = files.Skip(i).Take(batchSize).ToArray();
             var attempt = 0;
+            Exception? lastException = null;
 
-            while (true)
+            while (attempt <= maxRetries)
             {
+                var streams = new List<Stream>();
                 try
                 {
                     using var content = new MultipartFormDataContent();
@@ -198,6 +229,7 @@ public partial class FrmUploadToServer : DarkDialog
                             .Replace('\\', '/');
 
                         var stream = File.OpenRead(filePath);
+                        streams.Add(stream);
                         var fileContent = new StreamContent(stream);
                         fileContent.Headers.ContentType =
                             MediaTypeHeaderValue.Parse("application/octet-stream");
@@ -211,7 +243,7 @@ public partial class FrmUploadToServer : DarkDialog
                         System.Net.HttpStatusCode.Unauthorized)
                     {
                         throw new Exception(
-                            "Authentication expired. Please log in again."
+                            "Authentication required. Please ensure you have logged in with developer credentials."
                         );
                     }
 
@@ -235,13 +267,33 @@ public partial class FrmUploadToServer : DarkDialog
 
                     break;
                 }
-                catch when (++attempt <= maxRetries)
+                catch (Exception ex)
                 {
-                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                    lblStatus.Text =
-                        $"Retrying batch ({attempt}/{maxRetries})...";
-                    await Task.Delay(delay);
+                    lastException = ex;
+                    attempt++;
+
+                    if (attempt <= maxRetries)
+                    {
+                        var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                        lblStatus.Text =
+                            $"Retrying batch ({attempt}/{maxRetries})...";
+                        await Task.Delay(delay);
+                    }
                 }
+                finally
+                {
+                    // Ensure all streams are disposed
+                    foreach (var stream in streams)
+                    {
+                        stream?.Dispose();
+                    }
+                }
+            }
+
+            // If all retries failed, throw the last exception
+            if (lastException != null && attempt > maxRetries)
+            {
+                throw lastException;
             }
         }
 

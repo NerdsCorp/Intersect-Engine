@@ -137,15 +137,17 @@ public sealed class EditorUpdatesController : ControllerBase
         }
 
         // Create destination directory if it doesn't exist
-        var directoryInfo = new DirectoryInfo(destinationFolder);
-        if (!directoryInfo.Exists)
+        // Use Directory.CreateDirectory to create all parent directories
+        if (!Directory.Exists(destinationFolder))
         {
             _logger.LogInformation(
                 "Creating directory for updates: {DirectoryPath}",
                 relativeDestinationFolder
             );
-            directoryInfo.Create();
+            Directory.CreateDirectory(destinationFolder);
         }
+
+        var directoryInfo = new DirectoryInfo(destinationFolder);
 
         // Process each file
         var results = new Dictionary<string, FileUploadResult>();
