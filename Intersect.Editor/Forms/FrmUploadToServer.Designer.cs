@@ -45,6 +45,7 @@ namespace Intersect.Editor.Forms
             this.lblStatus = new DarkUI.Controls.DarkLabel();
             this.grpUploadType = new DarkUI.Controls.DarkGroupBox();
             this.btnLogin = new DarkUI.Controls.DarkButton();
+            this.btnTestUrl = new DarkUI.Controls.DarkButton();
             this.grpUploadType.SuspendLayout();
             this.SuspendLayout();
             //
@@ -65,7 +66,7 @@ namespace Intersect.Editor.Forms
             this.txtServerUrl.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.txtServerUrl.Location = new System.Drawing.Point(15, 31);
             this.txtServerUrl.Name = "txtServerUrl";
-            this.txtServerUrl.Size = new System.Drawing.Size(457, 20);
+            this.txtServerUrl.Size = new System.Drawing.Size(363, 20);
             this.txtServerUrl.TabIndex = 1;
             //
             // lblUploadType
@@ -159,6 +160,16 @@ namespace Intersect.Editor.Forms
             this.lblStatus.Size = new System.Drawing.Size(0, 13);
             this.lblStatus.TabIndex = 8;
             //
+            // btnTestUrl
+            //
+            this.btnTestUrl.Location = new System.Drawing.Point(384, 29);
+            this.btnTestUrl.Name = "btnTestUrl";
+            this.btnTestUrl.Padding = new System.Windows.Forms.Padding(5);
+            this.btnTestUrl.Size = new System.Drawing.Size(88, 23);
+            this.btnTestUrl.TabIndex = 12;
+            this.btnTestUrl.Text = "Test URL";
+            this.btnTestUrl.Click += new System.EventHandler(this.btnTestUrl_Click);
+            //
             // btnLogin
             //
             this.btnLogin.Location = new System.Drawing.Point(15, 260);
@@ -167,7 +178,7 @@ namespace Intersect.Editor.Forms
             this.btnLogin.Size = new System.Drawing.Size(85, 28);
             this.btnLogin.TabIndex = 11;
             this.btnLogin.Text = "Login";
-            this.btnLogin.Visible = false;
+            this.btnLogin.Visible = true;
             this.btnLogin.Click += new System.EventHandler(this.btnLogin_Click);
             //
             // btnUpload
@@ -197,6 +208,7 @@ namespace Intersect.Editor.Forms
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(484, 300);
+            this.Controls.Add(this.btnTestUrl);
             this.Controls.Add(this.btnLogin);
             this.Controls.Add(this.btnClose);
             this.Controls.Add(this.btnUpload);
@@ -237,5 +249,6 @@ namespace Intersect.Editor.Forms
         private DarkLabel lblStatus;
         private DarkGroupBox grpUploadType;
         private DarkButton btnLogin;
+        private DarkButton btnTestUrl;
     }
 }

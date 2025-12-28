@@ -94,13 +94,16 @@ public partial class FrmUploadToServer : DarkDialog
         if (_tokenResponse != null)
         {
             lblStatus.Text = "✓ Authenticated";
-            btnLogin.Visible = false;
+            btnLogin.Text = "Re-Login";
         }
         else
         {
             lblStatus.Text = "⚠ Not authenticated - click Login to authenticate";
-            btnLogin.Visible = true;
+            btnLogin.Text = "Login";
         }
+
+        // Login button is always visible now
+        btnLogin.Visible = true;
 
         // Force UI refresh
         btnLogin.Refresh();
@@ -794,6 +797,98 @@ public partial class FrmUploadToServer : DarkDialog
             DarkDialogButton.Ok,
             Icon
         );
+    }
+
+    private async void btnTestUrl_Click(object sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(txtServerUrl.Text))
+        {
+            DarkMessageBox.ShowError(
+                "Please enter a server URL to test.",
+                "Server URL Required",
+                DarkDialogButton.Ok,
+                Icon
+            );
+            return;
+        }
+
+        btnTestUrl.Enabled = false;
+        var originalStatus = lblStatus.Text;
+        lblStatus.Text = "Testing server URL...";
+
+        try
+        {
+            var serverUrl = txtServerUrl.Text.TrimEnd('/');
+            using var httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+
+            // Try to reach the server's API endpoint
+            var testEndpoint = $"{serverUrl}/api/v1/info";
+            var response = await httpClient.GetAsync(testEndpoint);
+
+            if (response.IsSuccessStatusCode)
+            {
+                lblStatus.Text = "✓ Server URL is reachable";
+                DarkMessageBox.ShowInformation(
+                    "The server URL is valid and reachable!",
+                    "Test Successful",
+                    DarkDialogButton.Ok,
+                    Icon
+                );
+            }
+            else
+            {
+                lblStatus.Text = $"⚠ Server responded with status: {response.StatusCode}";
+                DarkMessageBox.ShowWarning(
+                    $"The server responded but returned status code: {response.StatusCode}\n\n" +
+                    "The URL may still work for uploading if the API is configured correctly.",
+                    "Server Response",
+                    DarkDialogButton.Ok,
+                    Icon
+                );
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            lblStatus.Text = "✗ Failed to reach server";
+            DarkMessageBox.ShowError(
+                $"Could not connect to the server:\n\n{ex.Message}\n\n" +
+                "Please check the URL and ensure the server is running.",
+                "Connection Failed",
+                DarkDialogButton.Ok,
+                Icon
+            );
+        }
+        catch (TaskCanceledException)
+        {
+            lblStatus.Text = "✗ Connection timed out";
+            DarkMessageBox.ShowError(
+                "The connection to the server timed out.\n\n" +
+                "Please check the URL and ensure the server is running.",
+                "Connection Timeout",
+                DarkDialogButton.Ok,
+                Icon
+            );
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = "✗ Test failed";
+            DarkMessageBox.ShowError(
+                $"An error occurred while testing the URL:\n\n{ex.Message}",
+                "Test Error",
+                DarkDialogButton.Ok,
+                Icon
+            );
+        }
+        finally
+        {
+            btnTestUrl.Enabled = true;
+            // Restore authentication status after a delay
+            await Task.Delay(3000);
+            UpdateAuthenticationStatus();
+        }
     }
 
     private void btnClose_Click(object sender, EventArgs e)
