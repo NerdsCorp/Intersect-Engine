@@ -51,7 +51,6 @@ public sealed class EditorUpdatesController : ControllerBase
     /// Files are saved to the assets/client directory and will be automatically
     /// included in the next client update manifest.
     /// </summary>
-    /// <param name="files">Files to upload</param>
     /// <param name="subfolder">Optional subfolder within assets/client (e.g., "resources", "resources/images")</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("client")]
@@ -60,11 +59,10 @@ public sealed class EditorUpdatesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.Forbidden, ContentTypes.Json)]
     public async Task<IActionResult> UploadClientFiles(
-        [FromForm] IFormFileCollection files,
         [FromForm] string? subfolder = null
     )
     {
-        return await UploadFilesInternal("client", files, subfolder);
+        return await UploadFilesInternal("client", Request.Form.Files, subfolder);
     }
 
     /// <summary>
@@ -72,7 +70,6 @@ public sealed class EditorUpdatesController : ControllerBase
     /// Files are saved to the assets/editor directory and will be automatically
     /// included in the next editor update manifest.
     /// </summary>
-    /// <param name="files">Files to upload</param>
     /// <param name="subfolder">Optional subfolder within assets/editor</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("editor")]
@@ -81,11 +78,10 @@ public sealed class EditorUpdatesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.Forbidden, ContentTypes.Json)]
     public async Task<IActionResult> UploadEditorFiles(
-        [FromForm] IFormFileCollection files,
         [FromForm] string? subfolder = null
     )
     {
-        return await UploadFilesInternal("editor", files, subfolder);
+        return await UploadFilesInternal("editor", Request.Form.Files, subfolder);
     }
 
     private async Task<IActionResult> UploadFilesInternal(
