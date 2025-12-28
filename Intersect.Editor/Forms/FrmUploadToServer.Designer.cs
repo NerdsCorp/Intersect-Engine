@@ -172,7 +172,7 @@ namespace Intersect.Editor.Forms
             //
             // btnLogin
             //
-            this.btnLogin.Location = new System.Drawing.Point(15, 270);
+            this.btnLogin.Location = new System.Drawing.Point(206, 270);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Padding = new System.Windows.Forms.Padding(5);
             this.btnLogin.Size = new System.Drawing.Size(85, 28);
