@@ -2133,6 +2133,11 @@ public partial class FrmMain : Form
             targetSubdirectoryInfo.Delete(true);
         }
 
+        // Check if asset packaging is enabled
+        var packageUpdateAssets = Preferences.LoadPreference("PackageUpdateAssets");
+        var packagingEnabled = !string.IsNullOrWhiteSpace(packageUpdateAssets) &&
+            Convert.ToBoolean(packageUpdateAssets, CultureInfo.InvariantCulture);
+
         // Intersect excluded files
         var editorBaseName = Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
         var editorFileNameExe = $"{editorBaseName}.exe";
@@ -2160,10 +2165,7 @@ public partial class FrmMain : Form
         [
             "resources/client_strings.json",
         ];
-        List<string> editorExcludeDirectories =
-        [
-            "resources/packs",
-        ];
+        List<string> editorExcludeDirectories = new();
         string[] excludeExtensions =
         [
             ".dll",
@@ -2180,81 +2182,152 @@ public partial class FrmMain : Form
         const string resourcesDirectoryName = "resources";
         var pathToResourcesDirectory = Path.Combine(sourceDirectory, resourcesDirectoryName);
         var pathToPacksDirectory = Path.Combine(pathToResourcesDirectory, "packs");
-        if (Directory.Exists(pathToPacksDirectory))
+        if (packagingEnabled && Directory.Exists(pathToPacksDirectory))
         {
+            // When packaging is enabled: include packs, exclude source files
             var packFileNames = Directory.GetFiles(pathToPacksDirectory, "*.meta");
-            editorExcludeFiles.AddRange(packFileNames);
+
+            // Exclude source texture files that were packed
             clientExcludeFiles.AddRange(
-                packFileNames.Select(
-                        pack =>
+                packFileNames.SelectMany(
+                    pack =>
+                    {
+                        try
                         {
                             var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
-                            if (tokenPack is not JObject objectPack)
+                            if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
                             {
-                                return null;
+                                return Enumerable.Empty<string>();
                             }
 
-                            return objectPack.TryGetValue("frames", out var tokenFrames) ? tokenFrames : null;
+                            return tokenFrames.Children()
+                                .OfType<JObject>()
+                                .Where(frameObject => frameObject.TryGetValue("filename", out _))
+                                .Select(frameObject => frameObject["filename"]?.Value<string>())
+                                .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                                .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/'))
+                                .OfType<string>();
                         }
-                    )
-                    .SelectMany(
-                        token => token?.Children() ?? [],
-                        (_, frameToken) =>
-                            frameToken is JObject frameObject &&
-                            frameObject.TryGetValue("filename", out var tokenFilename)
-                                ? tokenFilename.Value<string>()
-                                : null
-                    )
-                    .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                    .OfType<string>()
+                        catch
+                        {
+                            return Enumerable.Empty<string>();
+                        }
+                    }
+                )
             );
 
+            // Exclude source sound files that were packed
             var soundIndex = Path.Combine(pathToPacksDirectory, "sound.index");
             if (File.Exists(soundIndex))
             {
-                editorExcludeFiles.Add(soundIndex);
-                using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
-                editorExcludeFiles.AddRange(
-                    soundPacker.CachedPackages.Select(
-                        cachedPackage => Path.Combine(soundPacker.PackageLocation, cachedPackage)
-                    )
-                );
-
-                clientExcludeFiles.AddRange(
-                    soundPacker.FileList.Select(
-                        sound => Path.Combine(
-                                resourcesDirectoryName,
-                                "sounds",
-                                sound.ToLower(CultureInfo.CurrentCulture)
-                            )
-                            .Replace('\\', '/')
-                    )
-                );
+                try
+                {
+                    using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
+                    clientExcludeFiles.AddRange(
+                        soundPacker.FileList.Select(
+                            sound => Path.Combine(resourcesDirectoryName, "sounds", sound.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                        )
+                    );
+                }
+                catch
+                {
+                    // Ignore packer errors
+                }
             }
 
+            // Exclude source music files that were packed
             var musicIndex = Path.Combine(pathToPacksDirectory, "music.index");
             if (File.Exists(musicIndex))
             {
-                editorExcludeFiles.Add(musicIndex);
-                using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
-                editorExcludeFiles.AddRange(
-                    musicPacker.CachedPackages.Select(
-                        cachedPackage => Path.Combine(musicPacker.PackageLocation, cachedPackage)
-                    )
-                );
-
-                clientExcludeFiles.AddRange(
-                    musicPacker.FileList.Select(
-                        music => Path.Combine(
-                                resourcesDirectoryName,
-                                "music",
-                                music.ToLower(CultureInfo.CurrentCulture)
-                            )
-                            .Replace('\\', '/')
-                    )
-                );
+                try
+                {
+                    using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
+                    clientExcludeFiles.AddRange(
+                        musicPacker.FileList.Select(
+                            music => Path.Combine(resourcesDirectoryName, "music", music.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                        )
+                    );
+                }
+                catch
+                {
+                    // Ignore packer errors
+                }
             }
+        }
+        else if (!packagingEnabled)
+        {
+            // When packaging is disabled: exclude packs directory
+            editorExcludeDirectories.Add("resources/packs");
 
+            if (Directory.Exists(pathToPacksDirectory))
+            {
+                var packFileNames = Directory.GetFiles(pathToPacksDirectory, "*.meta");
+                editorExcludeFiles.AddRange(packFileNames.Select(f => Path.GetRelativePath(sourceDirectory, f).Replace('\\', '/')));
+
+                // Exclude texture source files referenced in pack metadata
+                editorExcludeFiles.AddRange(
+                    packFileNames.SelectMany(pack =>
+                    {
+                        try
+                        {
+                            var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
+                            if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
+                            {
+                                return Enumerable.Empty<string>();
+                            }
+
+                            return tokenFrames.Children()
+                                .OfType<JObject>()
+                                .Where(frameObject => frameObject.TryGetValue("filename", out _))
+                                .Select(frameObject => frameObject["filename"]?.Value<string>())
+                                .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                                .OfType<string>();
+                        }
+                        catch
+                        {
+                            return Enumerable.Empty<string>();
+                        }
+                    })
+                );
+
+                var soundIndex = Path.Combine(pathToPacksDirectory, "sound.index");
+                if (File.Exists(soundIndex))
+                {
+                    editorExcludeFiles.Add(Path.GetRelativePath(sourceDirectory, soundIndex).Replace('\\', '/'));
+                    try
+                    {
+                        using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
+                        editorExcludeFiles.AddRange(
+                            soundPacker.CachedPackages.Select(
+                                cachedPackage => Path.Combine("resources/packs", cachedPackage).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+
+                var musicIndex = Path.Combine(pathToPacksDirectory, "music.index");
+                if (File.Exists(musicIndex))
+                {
+                    editorExcludeFiles.Add(Path.GetRelativePath(sourceDirectory, musicIndex).Replace('\\', '/'));
+                    try
+                    {
+                        using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
+                        editorExcludeFiles.AddRange(
+                            musicPacker.CachedPackages.Select(
+                                cachedPackage => Path.Combine("resources/packs", cachedPackage).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+            }
         }
 
         var fileCount = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.*", SearchOption.AllDirectories).Length;
