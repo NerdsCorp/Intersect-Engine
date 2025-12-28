@@ -87,16 +87,25 @@ public static class Program
 
         //Place sqlite3.dll where it's needed.
         var dllname = Environment.Is64BitProcess ? "sqlite3x64.dll" : "sqlite3x86.dll";
+        var targetPath = Path.Combine(Environment.CurrentDirectory, "sqlite3.dll");
+
         using (var resourceStream = Assembly.GetExecutingAssembly()
                    .GetManifestResourceStream("Intersect.Editor.Resources." + dllname))
         {
             Debug.Assert(resourceStream != null, "resourceStream != null");
-            using (var fileStream = new FileStream("sqlite3.dll", FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            using (var fileStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
             {
                 var data = new byte[resourceStream.Length];
                 resourceStream.Read(data, 0, (int)resourceStream.Length);
                 fileStream.Write(data, 0, data.Length);
+                fileStream.Flush(true); // Flush to disk immediately
             }
+        }
+
+        // Verify the DLL was extracted successfully
+        if (!File.Exists(targetPath))
+        {
+            throw new FileNotFoundException($"Failed to extract {targetPath}");
         }
 
         ApplicationContext.CurrentContext.Logger.LogTrace("Libraries unpacked.");
