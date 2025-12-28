@@ -1869,8 +1869,10 @@ public partial class FrmMain : Form
             {
                 try
                 {
-                    var relativePath = Path.GetRelativePath(rootDirectory, pngFile);
-                    var texture = new Texture(pngFile);
+                    // Use path relative to root directory matching old GameContentManager format
+                    // Example: "resources/items/sword.png"
+                    var relativePath = Path.GetRelativePath(rootDirectory, pngFile).Replace('\\', '/');
+                    var texture = new Texture(relativePath);
                     toPack.Add(texture);
                 }
                 catch (Exception ex)
