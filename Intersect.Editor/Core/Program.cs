@@ -101,6 +101,12 @@ public static class Program
 
         ApplicationContext.CurrentContext.Logger.LogTrace("Libraries unpacked.");
 
+        ApplicationContext.CurrentContext.Logger.LogTrace("Initializing SQLite...");
+        // Explicitly initialize SQLitePCL after extracting the native DLL
+        // This must happen before any SqliteConnection is created
+        SQLitePCL.Batteries_V2.Init();
+        ApplicationContext.CurrentContext.Logger.LogTrace("SQLite initialized.");
+
         ApplicationContext.CurrentContext.Logger.LogTrace("Creating forms...");
         Globals.UpdateForm = new FrmUpdate();
         ApplicationContext.CurrentContext.Logger.LogTrace("Forms created.");
