@@ -1,6 +1,6 @@
 using Intersect.Configuration;
 using Intersect.Editor.Configuration;
-using System.Data.SQLite;
+using Mono.Data.Sqlite;
 
 namespace Intersect.Editor.Core;
 
@@ -64,7 +64,7 @@ public static partial class Database
             Directory.CreateDirectory("resources");
         }
 
-        // Note: System.Data.SQLite handles thread safety internally, no need to set serialized mode
+        // Note: Mono.Data.Sqlite handles thread safety internally, no need to set serialized mode
         if (!File.Exists(DB_FILENAME))
         {
             CreateDatabase();
