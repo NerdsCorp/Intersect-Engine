@@ -36,9 +36,6 @@ namespace Intersect.Editor.Forms
             this.lblUploadType = new DarkUI.Controls.DarkLabel();
             this.rbClientAssets = new DarkUI.Controls.DarkRadioButton();
             this.rbEditorAssets = new DarkUI.Controls.DarkRadioButton();
-            this.lblDirectory = new DarkUI.Controls.DarkLabel();
-            this.txtDirectory = new DarkUI.Controls.DarkTextBox();
-            this.btnBrowse = new DarkUI.Controls.DarkButton();
             this.btnUpload = new DarkUI.Controls.DarkButton();
             this.btnClose = new DarkUI.Controls.DarkButton();
             this.progressBar = new System.Windows.Forms.ProgressBar();
@@ -113,40 +110,9 @@ namespace Intersect.Editor.Forms
             this.rbEditorAssets.TabIndex = 1;
             this.rbEditorAssets.Text = "Editor Assets";
             //
-            // lblDirectory
-            //
-            this.lblDirectory.AutoSize = true;
-            this.lblDirectory.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lblDirectory.Location = new System.Drawing.Point(12, 153);
-            this.lblDirectory.Name = "lblDirectory";
-            this.lblDirectory.Size = new System.Drawing.Size(92, 13);
-            this.lblDirectory.TabIndex = 4;
-            this.lblDirectory.Text = "Source Directory:";
-            //
-            // txtDirectory
-            //
-            this.txtDirectory.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(69)))), ((int)(((byte)(73)))), ((int)(((byte)(74)))));
-            this.txtDirectory.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtDirectory.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtDirectory.Location = new System.Drawing.Point(15, 169);
-            this.txtDirectory.Name = "txtDirectory";
-            this.txtDirectory.ReadOnly = true;
-            this.txtDirectory.Size = new System.Drawing.Size(357, 20);
-            this.txtDirectory.TabIndex = 5;
-            //
-            // btnBrowse
-            //
-            this.btnBrowse.Location = new System.Drawing.Point(378, 167);
-            this.btnBrowse.Name = "btnBrowse";
-            this.btnBrowse.Padding = new System.Windows.Forms.Padding(5);
-            this.btnBrowse.Size = new System.Drawing.Size(94, 23);
-            this.btnBrowse.TabIndex = 6;
-            this.btnBrowse.Text = "Browse...";
-            this.btnBrowse.Click += new System.EventHandler(this.btnBrowse_Click);
-            //
             // progressBar
             //
-            this.progressBar.Location = new System.Drawing.Point(15, 205);
+            this.progressBar.Location = new System.Drawing.Point(15, 155);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(457, 23);
             this.progressBar.TabIndex = 7;
@@ -155,7 +121,7 @@ namespace Intersect.Editor.Forms
             //
             this.lblStatus.AutoSize = true;
             this.lblStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lblStatus.Location = new System.Drawing.Point(12, 237);
+            this.lblStatus.Location = new System.Drawing.Point(12, 187);
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(0, 13);
             this.lblStatus.TabIndex = 8;
@@ -172,7 +138,7 @@ namespace Intersect.Editor.Forms
             //
             // btnLogin
             //
-            this.btnLogin.Location = new System.Drawing.Point(206, 290);
+            this.btnLogin.Location = new System.Drawing.Point(206, 240);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Padding = new System.Windows.Forms.Padding(5);
             this.btnLogin.Size = new System.Drawing.Size(85, 28);
@@ -184,7 +150,7 @@ namespace Intersect.Editor.Forms
             // btnUpload
             //
             this.btnUpload.Enabled = false;
-            this.btnUpload.Location = new System.Drawing.Point(297, 290);
+            this.btnUpload.Location = new System.Drawing.Point(297, 240);
             this.btnUpload.Name = "btnUpload";
             this.btnUpload.Padding = new System.Windows.Forms.Padding(5);
             this.btnUpload.Size = new System.Drawing.Size(85, 28);
@@ -195,7 +161,7 @@ namespace Intersect.Editor.Forms
             // btnClose
             //
             this.btnClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnClose.Location = new System.Drawing.Point(388, 290);
+            this.btnClose.Location = new System.Drawing.Point(388, 240);
             this.btnClose.Name = "btnClose";
             this.btnClose.Padding = new System.Windows.Forms.Padding(5);
             this.btnClose.Size = new System.Drawing.Size(84, 28);
@@ -207,16 +173,13 @@ namespace Intersect.Editor.Forms
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(484, 350);
+            this.ClientSize = new System.Drawing.Size(484, 300);
             this.Controls.Add(this.btnTestUrl);
             this.Controls.Add(this.btnLogin);
             this.Controls.Add(this.btnClose);
             this.Controls.Add(this.btnUpload);
             this.Controls.Add(this.lblStatus);
             this.Controls.Add(this.progressBar);
-            this.Controls.Add(this.btnBrowse);
-            this.Controls.Add(this.txtDirectory);
-            this.Controls.Add(this.lblDirectory);
             this.Controls.Add(this.grpUploadType);
             this.Controls.Add(this.lblUploadType);
             this.Controls.Add(this.txtServerUrl);
@@ -240,9 +203,6 @@ namespace Intersect.Editor.Forms
         private DarkLabel lblUploadType;
         private DarkRadioButton rbClientAssets;
         private DarkRadioButton rbEditorAssets;
-        private DarkLabel lblDirectory;
-        private DarkTextBox txtDirectory;
-        private DarkButton btnBrowse;
         private DarkButton btnUpload;
         private new DarkButton btnClose;
         private System.Windows.Forms.ProgressBar progressBar;
