@@ -86,11 +86,24 @@ public partial class GameInterface : MutableInterface
 
     private bool mShouldHideGuildWindow;
 
+    //Player Housing Flags
+    private bool mShouldOpenHouse;
+    private bool mShouldCloseHouse;
+    private bool mShouldOpenFurnitureStorage;
+    private bool mShouldCloseFurnitureStorage;
+    private int mHouseFurnitureSlotUpdate = -1;
+    private int mFurnitureStorageSlotUpdate = -1;
+
     private string mTradingTarget;
 
     private bool mCraftJournal {  get; set; }
 
     private TradingWindow? mTradingWindow;
+
+    //Player Housing Windows
+    private object? _houseWindow; // TODO: Replace with actual HouseWindow type when implemented
+    private object? _furnitureStorageWindow; // TODO: Replace with actual FurnitureStorageWindow type when implemented
+    private object? _publicHouseBrowserWindow; // TODO: Replace with actual PublicHouseBrowserWindow type when implemented
 
     public EntityBox PlayerBox;
 
@@ -339,6 +352,77 @@ public partial class GameInterface : MutableInterface
         adminWindow.PlayerName = playerName;
     }
 
+    //Player Housing Methods
+    public void NotifyOpenHouse()
+    {
+        mShouldOpenHouse = true;
+    }
+
+    public void NotifyCloseHouse()
+    {
+        mShouldCloseHouse = true;
+    }
+
+    public void NotifyHouseFurnitureUpdate(int slot)
+    {
+        mHouseFurnitureSlotUpdate = slot;
+    }
+
+    public void NotifyOpenFurnitureStorage()
+    {
+        mShouldOpenFurnitureStorage = true;
+    }
+
+    public void NotifyCloseFurnitureStorage()
+    {
+        mShouldCloseFurnitureStorage = true;
+    }
+
+    public void NotifyFurnitureStorageUpdate(int slot)
+    {
+        mFurnitureStorageSlotUpdate = slot;
+    }
+
+    public void NotifyPublicHouseListUpdate(Network.Packets.Server.PublicHouseListPacket packet)
+    {
+        // TODO: Update public house browser window when implemented
+        // For now, just store the packet data in Globals if needed
+    }
+
+    public void OpenHouse()
+    {
+        // TODO: Create actual HouseWindow when implemented
+        // _houseWindow = new HouseWindow(GameCanvas) { DeleteOnClose = true };
+        mShouldOpenHouse = false;
+        Globals.InHouse = true;
+    }
+
+    public void CloseHouse()
+    {
+        // TODO: Close actual HouseWindow when implemented
+        // _houseWindow?.Close();
+        // _houseWindow = null;
+        mShouldCloseHouse = false;
+        Globals.InHouse = false;
+    }
+
+    public void OpenFurnitureStorage()
+    {
+        // TODO: Create actual FurnitureStorageWindow when implemented
+        // _furnitureStorageWindow = new FurnitureStorageWindow(GameCanvas) { DeleteOnClose = true };
+        mShouldOpenFurnitureStorage = false;
+        Globals.InFurnitureStorage = true;
+    }
+
+    public void CloseFurnitureStorage()
+    {
+        // TODO: Close actual FurnitureStorageWindow when implemented
+        // _furnitureStorageWindow?.Close();
+        // _furnitureStorageWindow = null;
+        mShouldCloseFurnitureStorage = false;
+        Globals.InFurnitureStorage = false;
+    }
+
     public void Update(TimeSpan elapsed, TimeSpan total)
     {
         if (Globals.Me != null && PlayerBox?.MyEntity != Globals.Me)
@@ -511,6 +595,38 @@ public partial class GameInterface : MutableInterface
 
         mShouldCloseTrading = false;
 
+        //Player Housing Update
+        if (mShouldOpenHouse)
+        {
+            OpenHouse();
+            GameMenu?.OpenInventory();
+        }
+        else if (mShouldCloseHouse)
+        {
+            CloseHouse();
+        }
+        // TODO: Add house window update when implemented
+        // else
+        // {
+        //     _houseWindow?.Update();
+        // }
+
+        //Furniture Storage Update
+        if (mShouldOpenFurnitureStorage)
+        {
+            OpenFurnitureStorage();
+            GameMenu?.OpenInventory();
+        }
+        else if (mShouldCloseFurnitureStorage)
+        {
+            CloseFurnitureStorage();
+        }
+        // TODO: Add furniture storage window update when implemented
+        // else
+        // {
+        //     _furnitureStorageWindow?.Update();
+        // }
+
         if (FocusChat)
         {
             mChatBox.Focus();
@@ -607,6 +723,19 @@ public partial class GameInterface : MutableInterface
             closedWindows = true;
         }
 
+        // Player Housing Windows
+        if (Globals.InHouse)
+        {
+            CloseHouse();
+            closedWindows = true;
+        }
+
+        if (Globals.InFurnitureStorage)
+        {
+            CloseFurnitureStorage();
+            closedWindows = true;
+        }
+
         if (GameMenu != null && GameMenu.HasWindowsOpen())
         {
             GameMenu.CloseAllWindows();
@@ -630,6 +759,8 @@ public partial class GameInterface : MutableInterface
         CloseCraftingTable();
         CloseShop();
         CloseTrading();
+        CloseHouse();
+        CloseFurnitureStorage();
         GameCanvas.Dispose();
     }
 }

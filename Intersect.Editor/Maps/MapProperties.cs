@@ -569,6 +569,22 @@ partial class MapProperties
         }
     }
 
+    [CustomCategory("player"), CustomDescription("ispersonalinstancemapdesc"), CustomDisplayName("ispersonalinstancemap"),
+     DefaultValue(false)]
+    public bool IsPersonalInstanceMap
+    {
+        get => mMyMap.IsPersonalInstanceMap;
+        set
+        {
+            if (mMyMap.IsPersonalInstanceMap != value)
+            {
+                Globals.MapEditorWindow.PrepUndoState();
+                mMyMap.IsPersonalInstanceMap = value;
+                Globals.MapEditorWindow.AddUndoState();
+            }
+        }
+    }
+
 }
 
 public partial class MapMusicProperty : StringConverter

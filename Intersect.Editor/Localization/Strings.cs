@@ -4405,6 +4405,7 @@ Tick timer saved in server config.json.";
             {"weatheryspeed", @"Weather Y Speed"},
             {"weatherintensity", @"Weather Intensity"},
             {"hideequipment", @"Hide Equipment"},
+            {"ispersonalinstancemap", @"Personal Instance Map (Housing)"},
         };
 
         public static Dictionary<string, LocalizedString> descriptions = new Dictionary<string, LocalizedString>()
@@ -4446,6 +4447,7 @@ Tick timer saved in server config.json.";
             {"weatheryspeeddesc", @"How fast vertically weather particles move across the screen. (Range -5 to 5)"},
             {"weatherintensitydesc", @"How intence the weather is (number of particles). (Range 0 to 100)"},
             {"hideequipmentdesc", @"Toggling this on will stop rendering of item paperdolls while on this map."},
+            {"ispersonalinstancemapdesc", @"Enables this map as a personal instance for player housing. Each player will have their own separate copy of this map."},
         };
 
         public static LocalizedString title = @"Map Properties";
