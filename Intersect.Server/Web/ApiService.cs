@@ -715,6 +715,9 @@ internal partial class ApiService : ApplicationService<ServerContext, IApiServic
                 return;
             }
 
+            // Ensure assets folder exists
+            EnsureAssetDirectoriesExist(app);
+
             _app = app;
             await app.StartAsync(cancellationToken);
         }
@@ -722,6 +725,61 @@ internal partial class ApiService : ApplicationService<ServerContext, IApiServic
         {
             ApplicationContext.Context.Value?.Logger.LogError(exception, "Error starting API service");
             throw;
+        }
+    }
+
+    private void EnsureAssetDirectoriesExist(WebApplication app)
+    {
+        try
+        {
+            var updateServerSection = app.Configuration.GetSection(GetOptionsName<UpdateServerOptions>());
+            var updateServerOptions = updateServerSection.Get<UpdateServerOptions>();
+
+            if (updateServerOptions?.Enabled != true)
+            {
+                return;
+            }
+
+            var assetRoot = updateServerOptions.AssetRoot ?? "assets";
+            var assetRootPath = Path.Combine(app.Environment.ContentRootPath, assetRoot);
+
+            // Create the main assets directory if it doesn't exist
+            if (!Directory.Exists(assetRootPath))
+            {
+                Directory.CreateDirectory(assetRootPath);
+                ApplicationContext.Context.Value?.Logger.LogInformation(
+                    "Created assets directory at: {AssetRootPath}",
+                    assetRootPath
+                );
+            }
+
+            // Create client and editor subdirectories
+            var clientAssetsPath = Path.Combine(assetRootPath, "client");
+            if (!Directory.Exists(clientAssetsPath))
+            {
+                Directory.CreateDirectory(clientAssetsPath);
+                ApplicationContext.Context.Value?.Logger.LogInformation(
+                    "Created client assets directory at: {ClientAssetsPath}",
+                    clientAssetsPath
+                );
+            }
+
+            var editorAssetsPath = Path.Combine(assetRootPath, "editor");
+            if (!Directory.Exists(editorAssetsPath))
+            {
+                Directory.CreateDirectory(editorAssetsPath);
+                ApplicationContext.Context.Value?.Logger.LogInformation(
+                    "Created editor assets directory at: {EditorAssetsPath}",
+                    editorAssetsPath
+                );
+            }
+        }
+        catch (Exception exception)
+        {
+            ApplicationContext.Context.Value?.Logger.LogWarning(
+                exception,
+                "Failed to create assets directories"
+            );
         }
     }
 
