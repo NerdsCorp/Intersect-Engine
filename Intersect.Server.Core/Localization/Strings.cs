@@ -783,6 +783,135 @@ public static partial class Strings
         public readonly LocalizedString DeleteGuildLeader = @"You cannot delete a character that is a guild {00}. Please disband the guild or transfer ownership before trying again.";
     }
 
+    public sealed partial class HousesNamespace : LocaleNamespace
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString AlreadyOwnsHouse = @"You already own a house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidHouseMap = @"Invalid house map!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString MapNotPersonalInstance = @"The selected map is not configured as a personal instance map!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotAffordHouse = @"You cannot afford this house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HousePurchased = @"Congratulations! You have purchased your house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseNotFound = @"House not found!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoPermissionToEnter = @"You do not have permission to enter this house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseMapNotLoaded = @"House map is not loaded!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoHouseOwned = @"You do not own a house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidTargetPlayer = @"Invalid target player!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString VisitorInvited = @"Visitor has been invited to your house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotInviteVisitor = @"Cannot invite visitor! Maximum visitor limit reached.";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString VisitorRemoved = @"Visitor has been removed from your house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString VisitorNotFound = @"Visitor not found!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseSetPublic = @"Your house has been made public!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseSetPrivate = @"Your house has been made private!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseNameSet = @"Your house name has been updated!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseDescriptionSet = @"Your house description has been updated!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NotInHouse = @"You are not currently visiting a house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotRateOwnHouse = @"You cannot rate your own house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString HouseRated = @"Thank you for rating this house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidRating = @"Invalid rating! Rating must be between 1 and 5.";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NotInHouseInterface = @"You must be in the house furniture interface!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidFurnitureSlot = @"Invalid furniture slot!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoFurnitureInSlot = @"There is no furniture in that slot!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NotStorageFurniture = @"This furniture is not a storage container!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoPermissionToModify = @"You do not have permission to modify furniture in this house!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidFurnitureItem = @"Invalid furniture item!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotUseFurniture = @"This item cannot be used as furniture!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoFurnitureSpace = @"No available furniture slots!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString FurniturePlaced = @"{00} has been placed!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InventoryFull = @"Your inventory is full!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString FurnitureRemoved = @"{00} has been removed!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString StorageDepositSuccess = @"Item deposited into storage!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString StorageWithdrawSuccess = @"Item withdrawn from storage!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString StorageFull = @"Storage is full!";
+    }
+
+    public sealed partial class FurnitureStorageNamespace : LocaleNamespace
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString InvalidSlot = @"Invalid storage slot!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoItemInSlot = @"There is no item in that storage slot!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotDeposit = @"Cannot deposit item into storage!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString CannotWithdraw = @"Cannot withdraw item from storage!";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly LocalizedString NoItemInInventory = @"No item in inventory slot!";
+    }
+
     public sealed partial class IntroNamespace : LocaleNamespace
     {
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -1476,6 +1605,10 @@ public static partial class Strings
 
         public readonly GuildsNamespace Guilds = new GuildsNamespace();
 
+        public readonly HousesNamespace Houses = new HousesNamespace();
+
+        public readonly FurnitureStorageNamespace FurnitureStorage = new FurnitureStorageNamespace();
+
     }
 
     // ReSharper restore MemberHidesStaticFromOuterClass
@@ -1514,9 +1647,13 @@ public static partial class Strings
 
     public static FriendsNamespace Friends => Root.Friends;
 
+    public static FurnitureStorageNamespace FurnitureStorage => Root.FurnitureStorage;
+
     public static GeneralNamespace General => Root.General;
 
     public static GuildsNamespace Guilds => Root.Guilds;
+
+    public static HousesNamespace Houses => Root.Houses;
 
     public static IntroNamespace Intro => Root.Intro;
 

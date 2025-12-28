@@ -2303,4 +2303,580 @@ public static partial class CommandProcessing
         }
     }
 
+    // Player Housing Commands
+
+    //Purchase House Command
+    private static void ProcessCommand(
+        PurchaseHouseCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        var success = false;
+
+        // Check if player already has a house
+        if (player.House != null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.AlreadyOwnsHouse,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+        else if (!MapDescriptor.TryGet(command.MapId, out var mapDescriptor))
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidHouseMap,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+        else if (!mapDescriptor.IsPersonalInstanceMap)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.MapNotPersonalInstance,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+        else
+        {
+            // Try to take the currency
+            if (player.TryTakeItem(command.CurrencyId, command.Cost))
+            {
+                // Create the house
+                var house = PlayerHouse.CreateHouse(player, command.MapId);
+                if (house != null)
+                {
+                    player.House = house;
+                    success = true;
+
+                    PacketSender.SendChatMsg(
+                        player,
+                        Strings.Houses.HousePurchased,
+                        ChatMessageType.Experience,
+                        CustomColors.Alerts.Success
+                    );
+                }
+            }
+            else
+            {
+                PacketSender.SendChatMsg(
+                    player,
+                    Strings.Houses.CannotAffordHouse,
+                    ChatMessageType.Error,
+                    CustomColors.Alerts.Error
+                );
+            }
+        }
+
+        // Handle branching
+        List<EventCommand> newCommandList = null;
+        if (success && stackInfo.Page.CommandLists.ContainsKey(command.BranchIds[0]))
+        {
+            newCommandList = stackInfo.Page.CommandLists[command.BranchIds[0]];
+        }
+
+        if (!success && stackInfo.Page.CommandLists.ContainsKey(command.BranchIds[1]))
+        {
+            newCommandList = stackInfo.Page.CommandLists[command.BranchIds[1]];
+        }
+
+        var tmpStack = new CommandInstance(stackInfo.Page)
+        {
+            CommandList = newCommandList,
+            CommandIndex = 0,
+        };
+
+        callStack.Push(tmpStack);
+    }
+
+    //Enter House Command
+    private static void ProcessCommand(
+        EnterHouseCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        PlayerHouse targetHouse = null;
+
+        // Determine target house
+        if (command.TargetPlayerId != Guid.Empty)
+        {
+            // Enter specific player's house by ID
+            targetHouse = PlayerHouse.LoadHouseByOwner(command.TargetPlayerId);
+        }
+        else if (command.PlayerVariableId != Guid.Empty)
+        {
+            // Get player ID from variable
+            var playerVar = player.GetVariableValue(command.PlayerVariableId);
+            if (playerVar != null && Guid.TryParse(playerVar.String, out var targetPlayerId))
+            {
+                targetHouse = PlayerHouse.LoadHouseByOwner(targetPlayerId);
+            }
+        }
+        else
+        {
+            // Enter own house
+            targetHouse = player.House;
+        }
+
+        if (targetHouse == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseNotFound,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Check permissions
+        if (!targetHouse.CanEnter(player.Id))
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoPermissionToEnter,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get or create the house map instance
+        if (!MapDescriptor.TryGet(targetHouse.MapId, out var mapDescriptor))
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidHouseMap,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        var mapController = MapController.Get(targetHouse.MapId);
+        if (mapController == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseMapNotLoaded,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get or create personal instance
+        var instanceId = MapInstanceId.Personal(targetHouse.OwnerId);
+        var mapInstance = MapInstance.Get(targetHouse.MapId, instanceId);
+        if (mapInstance == null)
+        {
+            mapInstance = new MapInstance(mapController, instanceId);
+        }
+
+        // Record visit if not owner
+        if (targetHouse.OwnerId != player.Id)
+        {
+            targetHouse.RecordVisit();
+        }
+
+        player.VisitingHouseId = targetHouse.Id;
+        player.Warp(targetHouse.MapId, command.X, command.Y, 0, instanceId);
+    }
+
+    //Open House Furniture Command
+    private static void ProcessCommand(
+        OpenHouseFurnitureCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        if (player.HouseInterface != null)
+        {
+            player.HouseInterface.Dispose();
+        }
+
+        player.HouseInterface = new HouseInterface(player, player.House);
+        player.HouseInterface.SendOpenHouse();
+    }
+
+    //Invite To House Command
+    private static void ProcessCommand(
+        InviteToHouseCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get target player ID from variable
+        var playerVar = player.GetVariableValue(command.PlayerVariableId);
+        if (playerVar == null || !Guid.TryParse(playerVar.String, out var targetPlayerId))
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidTargetPlayer,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        if (player.House.AddVisitor(targetPlayerId, command.Permission))
+        {
+            DbInterface.Pool.QueueWorkItem(player.House.Save);
+
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.VisitorInvited,
+                ChatMessageType.Experience,
+                CustomColors.Alerts.Success
+            );
+        }
+        else
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.CannotInviteVisitor,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+    }
+
+    //Remove House Visitor Command
+    private static void ProcessCommand(
+        RemoveHouseVisitorCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get target player ID from variable
+        var playerVar = player.GetVariableValue(command.PlayerVariableId);
+        if (playerVar == null || !Guid.TryParse(playerVar.String, out var targetPlayerId))
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidTargetPlayer,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        if (player.House.RemoveVisitor(targetPlayerId))
+        {
+            DbInterface.Pool.QueueWorkItem(player.House.Save);
+
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.VisitorRemoved,
+                ChatMessageType.Experience,
+                CustomColors.Alerts.Success
+            );
+        }
+        else
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.VisitorNotFound,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+    }
+
+    //Set House Public Command
+    private static void ProcessCommand(
+        SetHousePublicCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        player.House.IsPublic = command.IsPublic;
+        DbInterface.Pool.QueueWorkItem(player.House.Save);
+
+        var message = command.IsPublic ? Strings.Houses.HouseSetPublic : Strings.Houses.HouseSetPrivate;
+        PacketSender.SendChatMsg(
+            player,
+            message,
+            ChatMessageType.Experience,
+            CustomColors.Alerts.Success
+        );
+    }
+
+    //Set House Name Command
+    private static void ProcessCommand(
+        SetHouseNameCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get name from variable
+        var nameVar = player.GetVariableValue(command.NameVariableId);
+        if (nameVar != null)
+        {
+            player.House.HouseName = nameVar.String;
+            DbInterface.Pool.QueueWorkItem(player.House.Save);
+
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseNameSet,
+                ChatMessageType.Experience,
+                CustomColors.Alerts.Success
+            );
+        }
+    }
+
+    //Set House Description Command
+    private static void ProcessCommand(
+        SetHouseDescriptionCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.House == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoHouseOwned,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get description from variable
+        var descVar = player.GetVariableValue(command.DescriptionVariableId);
+        if (descVar != null)
+        {
+            player.House.HouseDescription = descVar.String;
+            DbInterface.Pool.QueueWorkItem(player.House.Save);
+
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseDescriptionSet,
+                ChatMessageType.Experience,
+                CustomColors.Alerts.Success
+            );
+        }
+    }
+
+    //Rate House Command
+    private static void ProcessCommand(
+        RateHouseCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.VisitingHouseId == Guid.Empty)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NotInHouse,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        var house = PlayerHouse.LoadHouse(player.VisitingHouseId);
+        if (house == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseNotFound,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        if (house.OwnerId == player.Id)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.CannotRateOwnHouse,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get rating from variable
+        var ratingVar = player.GetVariableValue(command.RatingVariableId);
+        if (ratingVar != null && ratingVar.Integer >= 1 && ratingVar.Integer <= 5)
+        {
+            house.AddRating(ratingVar.Integer);
+            DbInterface.Pool.QueueWorkItem(house.Save);
+
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.HouseRated,
+                ChatMessageType.Experience,
+                CustomColors.Alerts.Success
+            );
+        }
+        else
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidRating,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+        }
+    }
+
+    //Open Furniture Storage Command
+    private static void ProcessCommand(
+        OpenFurnitureStorageCommand command,
+        Player player,
+        Event instance,
+        CommandInstance stackInfo,
+        Stack<CommandInstance> callStack
+    )
+    {
+        if (player.HouseInterface == null)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NotInHouseInterface,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Get furniture slot from variable
+        var slotVar = player.GetVariableValue(command.FurnitureSlotVariableId);
+        if (slotVar == null || slotVar.Integer < 0)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.InvalidFurnitureSlot,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        var furnitureSlot = player.House.Furniture[slotVar.Integer];
+        if (furnitureSlot == null || furnitureSlot.ItemId == Guid.Empty)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NoFurnitureInSlot,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        if (!ItemDescriptor.TryGet(furnitureSlot.ItemId, out var itemDescriptor))
+        {
+            return;
+        }
+
+        if (itemDescriptor.FurnitureProperties?.Type != FurnitureType.Storage)
+        {
+            PacketSender.SendChatMsg(
+                player,
+                Strings.Houses.NotStorageFurniture,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return;
+        }
+
+        // Open the furniture storage
+        var storage = FurnitureStorage.LoadOrCreate(furnitureSlot.Id, itemDescriptor.FurnitureProperties.StorageSlots);
+        if (storage != null)
+        {
+            if (player.FurnitureStorageInterface != null)
+            {
+                player.FurnitureStorageInterface.Dispose();
+            }
+
+            player.FurnitureStorageInterface = new FurnitureStorageInterface(player, storage);
+            player.FurnitureStorageInterface.SendOpenStorage();
+        }
+    }
+
 }

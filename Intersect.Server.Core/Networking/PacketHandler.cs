@@ -3198,5 +3198,70 @@ internal sealed partial class PacketHandler
         }
     }
 
+    // Player Housing Packets
+
+    //HouseFurnitureActionPacket
+    public void HandlePacket(Client client, HouseFurnitureActionPacket packet)
+    {
+        var player = client?.Entity;
+        if (player == null || player.HouseInterface == null)
+        {
+            return;
+        }
+
+        switch (packet.Action)
+        {
+            case HouseFurnitureActionPacket.ActionType.Place:
+                player.HouseInterface.TryPlaceFurniture(
+                    packet.InventorySlot,
+                    packet.X,
+                    packet.Y,
+                    packet.Direction
+                );
+                break;
+
+            case HouseFurnitureActionPacket.ActionType.Remove:
+                player.HouseInterface.TryRemoveFurniture(packet.FurnitureSlot);
+                break;
+
+            case HouseFurnitureActionPacket.ActionType.Move:
+                player.HouseInterface.TryMoveFurniture(
+                    packet.FurnitureSlot,
+                    packet.X,
+                    packet.Y,
+                    packet.Direction
+                );
+                break;
+        }
+    }
+
+    //FurnitureStorageInteractionPacket
+    public void HandlePacket(Client client, FurnitureStorageInteractionPacket packet)
+    {
+        var player = client?.Entity;
+        if (player == null || player.FurnitureStorageInterface == null)
+        {
+            return;
+        }
+
+        switch (packet.Action)
+        {
+            case FurnitureStorageInteractionPacket.ActionType.Deposit:
+                player.FurnitureStorageInterface.TryDepositItem(
+                    packet.InventorySlot,
+                    packet.Quantity,
+                    packet.StorageSlot
+                );
+                break;
+
+            case FurnitureStorageInteractionPacket.ActionType.Withdraw:
+                player.FurnitureStorageInterface.TryWithdrawItem(
+                    packet.StorageSlot,
+                    packet.Quantity
+                );
+                break;
+        }
+    }
+
     #endregion
 }
