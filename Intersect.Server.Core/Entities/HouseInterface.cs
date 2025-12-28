@@ -123,8 +123,16 @@ public partial class HouseInterface : IHouseInterface
         }
 
         // Check if item can be used as furniture
-        // This would require a new item property - for now, allow all items
-        // Future: Add itemDescriptor.CanBeFurniture flag
+        if (!itemDescriptor.CanBeFurniture)
+        {
+            PacketSender.SendChatMsg(
+                _player,
+                Strings.Houses.CannotUseFurniture,
+                ChatMessageType.Error,
+                CustomColors.Alerts.Error
+            );
+            return false;
+        }
 
         // Find an empty furniture slot
         lock (_lock)
@@ -323,6 +331,7 @@ namespace Intersect.Server.Localization
         {
             public static LocalizedString NoPermissionToModify = @"You don't have permission to modify this house.";
             public static LocalizedString InvalidFurnitureItem = @"Invalid furniture item.";
+            public static LocalizedString CannotUseFurniture = @"This item cannot be used as furniture.";
             public static LocalizedString NoFurnitureSpace = @"No available furniture slots.";
             public static LocalizedString InventoryFull = @"Your inventory is full.";
             public static LocalizedString FurniturePlaced => new LocalizedString(@"Placed {0}.");

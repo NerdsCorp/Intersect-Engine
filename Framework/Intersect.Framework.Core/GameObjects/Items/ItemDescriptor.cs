@@ -101,6 +101,16 @@ public partial class ItemDescriptor : DatabaseObject<ItemDescriptor>, IFolderabl
     /// </summary>
     public bool CanBag { get; set; } = true;
 
+    /// <summary>
+    /// Defines whether or not this item can be used as furniture in player houses.
+    /// </summary>
+    public bool CanBeFurniture { get; set; } = false;
+
+    /// <summary>
+    /// Furniture properties for this item when used as furniture.
+    /// </summary>
+    public FurnitureProperties? FurnitureProperties { get; set; }
+
     public int CritChance { get; set; }
 
     public double CritMultiplier { get; set; } = 1.5;

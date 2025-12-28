@@ -55,6 +55,10 @@ public abstract partial class PlayerContext : IntersectDbContext<PlayerContext>,
 
     public DbSet<HouseVisitor> House_Visitors { get; set; }
 
+    public DbSet<FurnitureStorage> Furniture_Storage { get; set; }
+
+    public DbSet<FurnitureStorageSlot> Furniture_Storage_Slots { get; set; }
+
     internal async ValueTask Commit(
         bool commit = false,
         CancellationToken cancellationToken = default(CancellationToken)
@@ -130,6 +134,9 @@ public abstract partial class PlayerContext : IntersectDbContext<PlayerContext>,
         modelBuilder.Entity<PlayerHouse>().HasMany(h => h.Furniture).WithOne(f => f.House).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<PlayerHouse>().HasMany(h => h.Visitors).WithOne(v => v.House).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<HouseFurnitureSlot>().HasOne(f => f.Bag);
+
+        modelBuilder.Entity<FurnitureStorage>().HasMany(fs => fs.Slots).WithOne(s => s.FurnitureStorage).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<FurnitureStorageSlot>().HasOne(s => s.Bag);
     }
 
     public void Seed()

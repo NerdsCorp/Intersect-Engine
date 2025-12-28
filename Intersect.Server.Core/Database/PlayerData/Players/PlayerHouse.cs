@@ -77,6 +77,42 @@ public partial class PlayerHouse
     public virtual List<HouseVisitor> Visitors { get; set; } = new List<HouseVisitor>();
 
     /// <summary>
+    /// Whether this house is open for public tours.
+    /// </summary>
+    public bool IsPublic { get; set; } = false;
+
+    /// <summary>
+    /// Custom name for the house (shown in public listings).
+    /// </summary>
+    public string HouseName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Description for the house (shown in public listings).
+    /// </summary>
+    public string HouseDescription { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Number of visits this house has received.
+    /// </summary>
+    public int VisitCount { get; set; } = 0;
+
+    /// <summary>
+    /// Total rating score from visitors.
+    /// </summary>
+    public int TotalRating { get; set; } = 0;
+
+    /// <summary>
+    /// Number of ratings received.
+    /// </summary>
+    public int RatingCount { get; set; } = 0;
+
+    /// <summary>
+    /// Average rating (calculated from TotalRating / RatingCount).
+    /// </summary>
+    [NotMapped]
+    public double AverageRating => RatingCount > 0 ? (double)TotalRating / RatingCount : 0.0;
+
+    /// <summary>
     /// Locking context to prevent concurrent modifications.
     /// </summary>
     [NotMapped]
@@ -284,6 +320,13 @@ public partial class PlayerHouse
     public bool CanEnter(Guid playerId)
     {
         var permission = GetPermission(playerId);
+
+        // Public houses can be entered by anyone
+        if (IsPublic)
+        {
+            return true;
+        }
+
         return permission != HousePermission.None;
     }
 
@@ -374,6 +417,74 @@ public partial class PlayerHouse
         context.SaveChanges();
 
         _ = Houses.TryRemove(house.Id, out _);
+    }
+
+    /// <summary>
+    /// Increments the visit counter for this house.
+    /// </summary>
+    public void RecordVisit()
+    {
+        VisitCount++;
+        Save();
+    }
+
+    /// <summary>
+    /// Adds a rating to this house.
+    /// </summary>
+    /// <param name="rating">Rating value (1-5).</param>
+    public void AddRating(int rating)
+    {
+        if (rating < 1 || rating > 5)
+        {
+            return;
+        }
+
+        TotalRating += rating;
+        RatingCount++;
+        Save();
+    }
+
+    /// <summary>
+    /// Gets a list of all public houses sorted by rating.
+    /// </summary>
+    /// <param name="skip">Number of houses to skip.</param>
+    /// <param name="take">Number of houses to return.</param>
+    /// <param name="sortBy">Field to sort by (rating, visits, recent).</param>
+    /// <returns>List of public houses.</returns>
+    public static List<PlayerHouse> GetPublicHouses(int skip = 0, int take = 10, string sortBy = "rating")
+    {
+        using var context = DbInterface.CreatePlayerContext();
+
+        var query = context.PlayerHouses.Where(h => h.IsPublic);
+
+        query = sortBy.ToLower() switch
+        {
+            "visits" => query.OrderByDescending(h => h.VisitCount),
+            "recent" => query.OrderByDescending(h => h.PurchaseDate),
+            _ => query.OrderByDescending(h => h.RatingCount > 0 ? h.TotalRating / (double)h.RatingCount : 0),
+        };
+
+        return query.Skip(skip).Take(take).ToList();
+    }
+
+    /// <summary>
+    /// Searches for public houses by name or owner.
+    /// </summary>
+    /// <param name="searchTerm">Search term.</param>
+    /// <param name="skip">Number to skip.</param>
+    /// <param name="take">Number to return.</param>
+    /// <returns>List of matching houses.</returns>
+    public static List<PlayerHouse> SearchPublicHouses(string searchTerm, int skip = 0, int take = 10)
+    {
+        using var context = DbInterface.CreatePlayerContext();
+
+        var query = context.PlayerHouses
+            .Include(h => h.Owner)
+            .Where(h => h.IsPublic &&
+                (h.HouseName.Contains(searchTerm) ||
+                 h.Owner.Name.Contains(searchTerm)));
+
+        return query.Skip(skip).Take(take).ToList();
     }
 
     /// <summary>
