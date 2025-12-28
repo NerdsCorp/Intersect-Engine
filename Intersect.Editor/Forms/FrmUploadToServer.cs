@@ -661,7 +661,6 @@ public partial class FrmUploadToServer : DarkDialog
         var uploadType = rbEditorAssets.Checked ? "editor" : "client";
         var isEditorUpload = rbEditorAssets.Checked;
         var serverUrl = txtServerUrl.Text.TrimEnd('/');
-        var endpoint = $"{serverUrl}/api/v1/editor/updates/{uploadType}";
 
         // Build exclusion lists
         var (excludeFiles, excludeExtensions, excludeDirectories, typeSpecificExcludeFiles, typeSpecificExcludeDirectories) =
@@ -729,99 +728,51 @@ public partial class FrmUploadToServer : DarkDialog
         httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
 
-        const int batchSize = 10;
-        const int maxRetries = 3;
+        // Use chunked upload for files larger than 10MB, batch upload for smaller files
+        const long chunkThreshold = 10_000_000; // 10MB
+        const int chunkSize = 10_000_000; // 10MB chunks
 
-        for (var i = 0; i < files.Length; i += batchSize)
+        foreach (var filePath in files)
         {
-            var batch = files.Skip(i).Take(batchSize).ToArray();
-            var attempt = 0;
-            Exception? lastException = null;
+            var fileInfo = new FileInfo(filePath);
+            var relativePath = Path.GetRelativePath(_selectedDirectory!, filePath).Replace('\\', '/');
+            var relativeDirectory = Path.GetDirectoryName(relativePath)?.Replace('\\', '/') ?? string.Empty;
 
-            while (attempt <= maxRetries)
+            try
             {
-                var streams = new List<Stream>();
-                try
+                if (fileInfo.Length >= chunkThreshold)
                 {
-                    using var content = new MultipartFormDataContent();
-
-                    foreach (var filePath in batch)
-                    {
-                        var relativePath = Path
-                            .GetRelativePath(_selectedDirectory!, filePath)
-                            .Replace('\\', '/');
-
-                        var stream = File.OpenRead(filePath);
-                        streams.Add(stream);
-                        var fileContent = new StreamContent(stream);
-                        fileContent.Headers.ContentType =
-                            MediaTypeHeaderValue.Parse("application/octet-stream");
-
-                        content.Add(fileContent, "files", relativePath);
-                    }
-
-                    var response = await httpClient.PostAsync(endpoint, content);
-
-                    if (response.StatusCode ==
-                        System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        // Clear the invalid token
-                        _tokenResponse = null;
-                        Preferences.SavePreference(nameof(TokenResponse), string.Empty);
-                        Invoke(new Action(UpdateAuthenticationStatus));
-
-                        throw new Exception(
-                            "Authentication failed. Your session may have expired. Please login again."
-                        );
-                    }
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var error = await response.Content.ReadAsStringAsync();
-                        throw new Exception(
-                            $"Upload failed ({response.StatusCode}): {error}"
-                        );
-                    }
-
-                    uploadedFiles += batch.Length;
-                    var progress = (int)(
-                        uploadedFiles / (float)totalFiles * 100
+                    // Use chunked upload for large files
+                    await UploadFileChunked(
+                        httpClient,
+                        serverUrl,
+                        filePath,
+                        relativePath,
+                        relativeDirectory,
+                        uploadType,
+                        chunkSize
                     );
-
-                    progressBar.Value = Math.Min(progress, 100);
-                    lblStatus.Text =
-                        Strings.UploadToServer.FilesUploaded
-                            .ToString(uploadedFiles, totalFiles);
-
-                    break;
                 }
-                catch (Exception ex)
+                else
                 {
-                    lastException = ex;
-                    attempt++;
+                    // Use simple upload for small files
+                    await UploadFileSimple(
+                        httpClient,
+                        serverUrl,
+                        filePath,
+                        relativePath,
+                        uploadType
+                    );
+                }
 
-                    if (attempt <= maxRetries)
-                    {
-                        var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                        lblStatus.Text =
-                            $"Retrying batch ({attempt}/{maxRetries})...";
-                        await Task.Delay(delay);
-                    }
-                }
-                finally
-                {
-                    // Ensure all streams are disposed
-                    foreach (var stream in streams)
-                    {
-                        stream?.Dispose();
-                    }
-                }
+                uploadedFiles++;
+                var progress = (int)(uploadedFiles / (float)totalFiles * 100);
+                progressBar.Value = Math.Min(progress, 100);
+                lblStatus.Text = Strings.UploadToServer.FilesUploaded.ToString(uploadedFiles, totalFiles);
             }
-
-            // If all retries failed, throw the last exception
-            if (lastException != null && attempt > maxRetries)
+            catch (Exception ex)
             {
-                throw lastException;
+                throw new Exception($"Failed to upload {relativePath}: {ex.Message}", ex);
             }
         }
 
@@ -834,6 +785,151 @@ public partial class FrmUploadToServer : DarkDialog
             DarkDialogButton.Ok,
             Icon
         );
+    }
+
+    private async Task UploadFileChunked(
+        HttpClient httpClient,
+        string serverUrl,
+        string filePath,
+        string relativePath,
+        string relativeDirectory,
+        string uploadType,
+        int chunkSize
+    )
+    {
+        var fileInfo = new FileInfo(filePath);
+        var fileName = Path.GetFileName(relativePath);
+
+        // Initialize upload session
+        var initRequest = new
+        {
+            FileName = fileName,
+            RelativePath = string.IsNullOrWhiteSpace(relativeDirectory) ? null : relativeDirectory,
+            UploadType = uploadType,
+            TotalSize = fileInfo.Length,
+            ChunkSize = chunkSize
+        };
+
+        var initJson = JsonConvert.SerializeObject(initRequest);
+        var initContent = new StringContent(initJson, Encoding.UTF8, "application/json");
+        var initResponse = await httpClient.PostAsync($"{serverUrl}/api/v1/editor/chunked-upload/init", initContent);
+
+        if (!initResponse.IsSuccessStatusCode)
+        {
+            var error = await initResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to initialize chunked upload: {error}");
+        }
+
+        var initResult = JsonConvert.DeserializeObject<dynamic>(await initResponse.Content.ReadAsStringAsync());
+        string sessionId = initResult.sessionId;
+        int totalChunks = initResult.totalChunks;
+
+        lblStatus.Text = $"Uploading {fileName} in {totalChunks} chunks...";
+
+        // Upload chunks
+        using var fileStream = File.OpenRead(filePath);
+        var buffer = new byte[chunkSize];
+
+        for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
+        {
+            var bytesRead = await fileStream.ReadAsync(buffer, 0, chunkSize);
+            var chunkData = new byte[bytesRead];
+            Array.Copy(buffer, chunkData, bytesRead);
+
+            // Upload chunk with retry
+            const int maxRetries = 3;
+            Exception? lastException = null;
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    using var chunkContent = new MultipartFormDataContent();
+                    chunkContent.Add(new StringContent(sessionId), "sessionId");
+                    chunkContent.Add(new StringContent(chunkIndex.ToString()), "chunkIndex");
+
+                    var chunkFileContent = new ByteArrayContent(chunkData);
+                    chunkFileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+                    chunkContent.Add(chunkFileContent, "file", $"chunk_{chunkIndex}");
+
+                    var chunkResponse = await httpClient.PostAsync(
+                        $"{serverUrl}/api/v1/editor/chunked-upload/chunk",
+                        chunkContent
+                    );
+
+                    if (!chunkResponse.IsSuccessStatusCode)
+                    {
+                        var error = await chunkResponse.Content.ReadAsStringAsync();
+                        throw new Exception($"Chunk {chunkIndex} upload failed: {error}");
+                    }
+
+                    lblStatus.Text = $"Uploading {fileName}: {chunkIndex + 1}/{totalChunks} chunks";
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    if (attempt < maxRetries)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt + 1)));
+                    }
+                }
+            }
+
+            if (lastException != null)
+            {
+                throw lastException;
+            }
+        }
+
+        // Finalize upload
+        var finalizeRequest = new { SessionId = sessionId };
+        var finalizeJson = JsonConvert.SerializeObject(finalizeRequest);
+        var finalizeContent = new StringContent(finalizeJson, Encoding.UTF8, "application/json");
+        var finalizeResponse = await httpClient.PostAsync(
+            $"{serverUrl}/api/v1/editor/chunked-upload/finalize",
+            finalizeContent
+        );
+
+        if (!finalizeResponse.IsSuccessStatusCode)
+        {
+            var error = await finalizeResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to finalize upload: {error}");
+        }
+    }
+
+    private async Task UploadFileSimple(
+        HttpClient httpClient,
+        string serverUrl,
+        string filePath,
+        string relativePath,
+        string uploadType
+    )
+    {
+        var endpoint = $"{serverUrl}/api/v1/editor/updates/{uploadType}";
+
+        using var content = new MultipartFormDataContent();
+        using var stream = File.OpenRead(filePath);
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+
+        content.Add(fileContent, "files", relativePath);
+
+        var response = await httpClient.PostAsync(endpoint, content);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _tokenResponse = null;
+            Preferences.SavePreference(nameof(TokenResponse), string.Empty);
+            Invoke(new Action(UpdateAuthenticationStatus));
+            throw new Exception("Authentication failed. Your session may have expired. Please login again.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Upload failed ({response.StatusCode}): {error}");
+        }
     }
 
     private async void btnTestUrl_Click(object sender, EventArgs e)
