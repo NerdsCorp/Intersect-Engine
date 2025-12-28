@@ -172,7 +172,7 @@ namespace Intersect.Editor.Forms
             //
             // btnLogin
             //
-            this.btnLogin.Location = new System.Drawing.Point(206, 270);
+            this.btnLogin.Location = new System.Drawing.Point(206, 290);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Padding = new System.Windows.Forms.Padding(5);
             this.btnLogin.Size = new System.Drawing.Size(85, 28);
@@ -184,7 +184,7 @@ namespace Intersect.Editor.Forms
             // btnUpload
             //
             this.btnUpload.Enabled = false;
-            this.btnUpload.Location = new System.Drawing.Point(297, 270);
+            this.btnUpload.Location = new System.Drawing.Point(297, 290);
             this.btnUpload.Name = "btnUpload";
             this.btnUpload.Padding = new System.Windows.Forms.Padding(5);
             this.btnUpload.Size = new System.Drawing.Size(85, 28);
@@ -195,7 +195,7 @@ namespace Intersect.Editor.Forms
             // btnClose
             //
             this.btnClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnClose.Location = new System.Drawing.Point(388, 270);
+            this.btnClose.Location = new System.Drawing.Point(388, 290);
             this.btnClose.Name = "btnClose";
             this.btnClose.Padding = new System.Windows.Forms.Padding(5);
             this.btnClose.Size = new System.Drawing.Size(84, 28);
@@ -207,7 +207,7 @@ namespace Intersect.Editor.Forms
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(484, 320);
+            this.ClientSize = new System.Drawing.Size(484, 350);
             this.Controls.Add(this.btnTestUrl);
             this.Controls.Add(this.btnLogin);
             this.Controls.Add(this.btnClose);
