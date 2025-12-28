@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
@@ -80,10 +82,165 @@ public partial class FrmUploadToServer : DarkDialog
         if (_tokenResponse != null)
         {
             lblStatus.Text = "✓ Authenticated";
+            btnLogin.Visible = false;
         }
         else
         {
-            lblStatus.Text = "⚠ Not authenticated - login through the editor first";
+            lblStatus.Text = "⚠ Not authenticated - click Login to authenticate";
+            btnLogin.Visible = true;
+        }
+    }
+
+    private async void btnLogin_Click(object sender, EventArgs e)
+    {
+        // Check if server URL is set
+        if (string.IsNullOrWhiteSpace(txtServerUrl.Text))
+        {
+            DarkMessageBox.ShowError(
+                "Please enter a server URL before logging in.",
+                "Server URL Required",
+                DarkDialogButton.Ok,
+                Icon
+            );
+            return;
+        }
+
+        // Prompt for credentials
+        using var loginDialog = new Form
+        {
+            Text = "Login",
+            Width = 350,
+            Height = 180,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent,
+            MaximizeBox = false,
+            MinimizeBox = false
+        };
+
+        var lblUsername = new Label { Left = 20, Top = 20, Text = "Username:", Width = 80 };
+        var txtUsername = new TextBox { Left = 110, Top = 17, Width = 200 };
+        var lblPassword = new Label { Left = 20, Top = 50, Text = "Password:", Width = 80 };
+        var txtPassword = new TextBox { Left = 110, Top = 47, Width = 200, PasswordChar = '*' };
+        var btnOk = new Button { Text = "Login", Left = 150, Top = 85, DialogResult = DialogResult.OK };
+        var btnCancel = new Button { Text = "Cancel", Left = 230, Top = 85, DialogResult = DialogResult.Cancel };
+
+        loginDialog.Controls.AddRange(new Control[] { lblUsername, txtUsername, lblPassword, txtPassword, btnOk, btnCancel });
+        loginDialog.AcceptButton = btnOk;
+        loginDialog.CancelButton = btnCancel;
+
+        // Load saved credentials if available
+        var savedUsername = Preferences.LoadPreference("Username");
+        var savedPassword = Preferences.LoadPreference("Password");
+        if (!string.IsNullOrWhiteSpace(savedUsername))
+        {
+            txtUsername.Text = savedUsername;
+            if (!string.IsNullOrWhiteSpace(savedPassword))
+            {
+                txtPassword.Text = "*****";
+                txtPassword.Tag = savedPassword; // Store hashed password in Tag
+            }
+        }
+
+        if (loginDialog.ShowDialog() == DialogResult.OK)
+        {
+            var username = txtUsername.Text.Trim();
+            var password = txtPassword.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                DarkMessageBox.ShowError(
+                    "Username and password are required.",
+                    "Invalid Credentials",
+                    DarkDialogButton.Ok,
+                    Icon
+                );
+                return;
+            }
+
+            // Disable controls during authentication
+            btnLogin.Enabled = false;
+            lblStatus.Text = "Authenticating...";
+
+            try
+            {
+                var serverUrl = txtServerUrl.Text.TrimEnd('/');
+                using var httpClient = new IntersectHttpClient(serverUrl);
+
+                // Check if we're using a saved password (hashed)
+                var isHashedPassword = password == "*****" && txtPassword.Tag is string hashedPwd;
+                var passwordToUse = isHashedPassword ? (string)txtPassword.Tag! : password;
+
+                var tokenResult = httpClient.TryRequestToken(
+                    username,
+                    passwordToUse,
+                    out var tokenResponse,
+                    hashed: isHashedPassword
+                );
+
+                if (tokenResult == TokenResultType.TokenReceived && tokenResponse != null)
+                {
+                    _tokenResponse = tokenResponse;
+
+                    // Save token to preferences
+                    Preferences.SavePreference(nameof(TokenResponse), JsonConvert.SerializeObject(_tokenResponse));
+
+                    // Save credentials for future use
+                    Preferences.SavePreference("Username", username);
+                    if (!isHashedPassword)
+                    {
+                        // Hash the password before saving
+                        using var sha = SHA256.Create();
+                        var hashedPassword = BitConverter.ToString(
+                            sha.ComputeHash(Encoding.UTF8.GetBytes(password))
+                        ).Replace("-", "");
+                        Preferences.SavePreference("Password", hashedPassword);
+                    }
+
+                    UpdateAuthenticationStatus();
+
+                    DarkMessageBox.ShowInformation(
+                        "Successfully authenticated!",
+                        "Login Successful",
+                        DarkDialogButton.Ok,
+                        Icon
+                    );
+                }
+                else
+                {
+                    var errorMessage = tokenResult switch
+                    {
+                        TokenResultType.InvalidCredentials => "Invalid username or password.",
+                        TokenResultType.InvalidUsername => "Invalid username.",
+                        TokenResultType.InvalidPassword => "Invalid password.",
+                        TokenResultType.RequestError => "Network error. Please check your server URL.",
+                        _ => $"Authentication failed: {tokenResult}"
+                    };
+
+                    DarkMessageBox.ShowError(
+                        errorMessage,
+                        "Login Failed",
+                        DarkDialogButton.Ok,
+                        Icon
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                DarkMessageBox.ShowError(
+                    $"Authentication error: {ex.Message}",
+                    "Login Error",
+                    DarkDialogButton.Ok,
+                    Icon
+                );
+            }
+            finally
+            {
+                btnLogin.Enabled = true;
+                if (_tokenResponse == null)
+                {
+                    UpdateAuthenticationStatus();
+                }
+            }
         }
     }
 
