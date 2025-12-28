@@ -443,7 +443,7 @@ public partial class FrmUploadToServer : DarkDialog
                                 .Where(frameObject => frameObject.TryGetValue("filename", out _))
                                 .Select(frameObject => frameObject["filename"]?.Value<string>())
                                 .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                                .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/').ToLower(CultureInfo.CurrentCulture))
+                                .Select(filename => filename!.Replace('\\', '/').ToLower(CultureInfo.CurrentCulture))
                                 .OfType<string>();
                         }
                         catch
@@ -598,7 +598,7 @@ public partial class FrmUploadToServer : DarkDialog
                                 .Where(frameObject => frameObject.TryGetValue("filename", out _))
                                 .Select(frameObject => frameObject["filename"]?.Value<string>())
                                 .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                                .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/').ToLower(CultureInfo.CurrentCulture))
+                                .Select(filename => filename!.Replace('\\', '/').ToLower(CultureInfo.CurrentCulture))
                                 .OfType<string>();
                         }
                         catch

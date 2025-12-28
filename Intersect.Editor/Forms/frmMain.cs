@@ -1846,21 +1846,42 @@ public partial class FrmMain : Form
         Globals.PackingProgressForm.SetProgress(Strings.AssetPacking.collecting, 20, false);
         Application.DoEvents();
         var toPack = new HashSet<Texture>();
-        foreach (var tex in GameContentManager.TilesetTextures)
-        {
-            toPack.Add(tex);
-        }
 
-        foreach (var tex in GameContentManager.FogTextures)
+        // Scan all texture directories in the resources folder
+        var textureDirectories = new[]
         {
-            toPack.Add(tex);
-        }
+            "tilesets", "fogs", "gui", "paperdolls", "resources", "spells",
+            "faces", "items", "misc", "animations", "entities", "images", "updater"
+        };
+        // Note: fonts directory is excluded because it contains only .xnb files, not PNG textures
+        // updater directory is included because it can contain PNG files like progressbar.png
 
-        foreach (var tex in GameContentManager.AllTextures)
+        foreach (var dir in textureDirectories)
         {
-            if (!toPack.Contains(tex))
+            var dirPath = Path.Combine(resourcesDirectory, dir);
+            if (!Directory.Exists(dirPath))
             {
-                toPack.Add(tex);
+                continue;
+            }
+
+            var pngFiles = Directory.GetFiles(dirPath, "*.png", SearchOption.TopDirectoryOnly);
+            foreach (var pngFile in pngFiles)
+            {
+                try
+                {
+                    // Use path relative to root directory matching old GameContentManager format
+                    // Example: "resources/items/sword.png"
+                    var relativePath = Path.GetRelativePath(rootDirectory, pngFile).Replace('\\', '/');
+                    var texture = new Texture(relativePath);
+                    toPack.Add(texture);
+                }
+                catch (Exception ex)
+                {
+                    Intersect.Core.ApplicationContext.Context.Value?.Logger.LogWarning(
+                        ex,
+                        $"Failed to load texture: {pngFile}"
+                    );
+                }
             }
         }
 
@@ -1938,6 +1959,9 @@ public partial class FrmMain : Form
             ".asset",
             musicPackSize
         );
+
+        // Note: Fonts and updater files are NOT packed because the client
+        // loads them directly from the file system and doesn't support unpacking them
 
         Globals.PackingProgressForm.SetProgress(Strings.AssetPacking.done, 100, false);
         Application.DoEvents();
