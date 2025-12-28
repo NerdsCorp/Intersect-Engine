@@ -386,8 +386,8 @@ public partial class GameInterface : MutableInterface
 
     public void NotifyPublicHouseListUpdate(Network.Packets.Server.PublicHouseListPacket packet)
     {
-        // TODO: Update public house browser window when implemented
-        // For now, just store the packet data in Globals if needed
+        // Update the public house browser window if it's open
+        _publicHouseBrowserWindow?.UpdateList(packet);
     }
 
     public void OpenHouse()
@@ -418,6 +418,20 @@ public partial class GameInterface : MutableInterface
         _furnitureStorageWindow = null;
         mShouldCloseFurnitureStorage = false;
         Globals.InFurnitureStorage = false;
+    }
+
+    public void OpenPublicHouseBrowser()
+    {
+        if (_publicHouseBrowserWindow == null)
+        {
+            _publicHouseBrowserWindow = new PublicHouseBrowserWindow(GameCanvas);
+        }
+        _publicHouseBrowserWindow.Show();
+    }
+
+    public void ClosePublicHouseBrowser()
+    {
+        _publicHouseBrowserWindow?.Hide();
     }
 
     public void Update(TimeSpan elapsed, TimeSpan total)
@@ -635,6 +649,9 @@ public partial class GameInterface : MutableInterface
                 mFurnitureStorageSlotUpdate = -1;
             }
         }
+
+        //Public House Browser Update
+        _publicHouseBrowserWindow?.Update();
 
         if (FocusChat)
         {

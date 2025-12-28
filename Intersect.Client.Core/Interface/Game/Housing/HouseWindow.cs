@@ -1,26 +1,23 @@
+using Intersect.Client.Core;
+using Intersect.Client.Framework.File_Management;
+using Intersect.Client.Framework.Gwen;
 using Intersect.Client.Framework.Gwen.Control;
 using Intersect.Client.General;
 using Intersect.Client.Localization;
+using Intersect.Client.Utilities;
 
 namespace Intersect.Client.Interface.Game.Housing;
 
-/// <summary>
-/// House Window - Furniture Management Interface
-/// TODO: Complete implementation with full UI controls
-/// Reference: BankWindow.cs for pattern
-/// </summary>
 public partial class HouseWindow : Window
 {
-    // TODO: Add proper controls
-    // public List<SlotItem> FurnitureSlots = [];
-    // private readonly ScrollControl _slotContainer;
-    // private readonly ContextMenu _contextMenu;
+    public List<SlotItem> Items = [];
+    private readonly ScrollControl _slotContainer;
+    private readonly ContextMenu _contextMenu;
 
-    private readonly Label _todoLabel;
-
+    //Init
     public HouseWindow(Canvas gameCanvas) : base(
         gameCanvas,
-        "House Furniture", // TODO: Use Strings.Houses.Title when localization is added
+        "House Furniture",
         false,
         nameof(HouseWindow)
     )
@@ -29,51 +26,50 @@ public partial class HouseWindow : Window
         Interface.InputBlockingComponents.Add(this);
 
         Alignment = [Alignments.Center];
-        MinimumSize = new Point(x: 600, y: 500);
+        MinimumSize = new Point(x: 436, y: 454);
         IsResizable = false;
         IsClosable = true;
 
+        TitleLabel.FontSize = 14;
+        TitleLabel.TextColorOverride = Color.White;
+
         Closed += (b, s) =>
         {
+            _contextMenu?.Close();
             Interface.GameUi.NotifyCloseHouse();
         };
 
-        // TODO: Remove this temporary label and implement actual UI
-        _todoLabel = new Label(this)
+        _slotContainer = new ScrollControl(this, "ItemContainer")
         {
-            Text = "House Furniture Window - Under Construction\n\n" +
-                   "TODO: Implement furniture slot grid\n" +
-                   "TODO: Add drag-and-drop from inventory\n" +
-                   "TODO: Add furniture positioning controls\n" +
-                   "TODO: Add remove furniture functionality\n\n" +
-                   "See HOUSING_CLIENT_TODO.md for implementation details",
             Dock = Pos.Fill,
-            Alignment = Pos.Center,
-            TextAlign = Pos.Center
+            OverflowX = OverflowBehavior.Auto,
+            OverflowY = OverflowBehavior.Scroll,
         };
 
-        // TODO: Initialize actual controls
-        // _slotContainer = new ScrollControl(this, "FurnitureContainer") { ... };
-        // _contextMenu = new ContextMenu(gameCanvas, "HouseContextMenu") { ... };
-        // InitFurnitureSlots();
+        _contextMenu = new ContextMenu(gameCanvas, "HouseFurnitureContextMenu")
+        {
+            IsVisibleInParent = false,
+            IconMarginDisabled = true,
+            ItemFont = GameContentManager.Current.GetFont(name: "sourcesansproblack"),
+            ItemFontSize = 10,
+        };
     }
 
-    // TODO: Implement
-    // protected override void EnsureInitialized()
-    // {
-    //     LoadJsonUi(GameContentManager.UI.InGame, Graphics.Renderer.GetResolutionString());
-    //     InitFurnitureSlots();
-    // }
+    protected override void EnsureInitialized()
+    {
+        LoadJsonUi(GameContentManager.UI.InGame, Graphics.Renderer.GetResolutionString());
+        InitItemContainer();
+    }
 
-    // TODO: Implement
-    // private void InitFurnitureSlots()
-    // {
-    //     for (var slotIndex = 0; slotIndex < Globals.HouseFurnitureSlotCount; slotIndex++)
-    //     {
-    //         FurnitureSlots.Add(new HouseFurnitureItem(this, _slotContainer, slotIndex, _contextMenu));
-    //     }
-    //     PopulateSlotContainer.Populate(_slotContainer, FurnitureSlots);
-    // }
+    private void InitItemContainer()
+    {
+        for (var slotIndex = 0; slotIndex < Globals.HouseFurnitureSlotCount; slotIndex++)
+        {
+            Items.Add(new HouseFurnitureItem(this, _slotContainer, slotIndex, _contextMenu));
+        }
+
+        PopulateSlotContainer.Populate(_slotContainer, Items);
+    }
 
     public void Update()
     {
@@ -82,29 +78,31 @@ public partial class HouseWindow : Window
             return;
         }
 
-        // TODO: Update furniture slots
-        // for (var i = 0; i < FurnitureSlots.Count; i++)
-        // {
-        //     if (FurnitureSlots[i] is HouseFurnitureItem item)
-        //     {
-        //         item.Update();
-        //     }
-        // }
+        for (var i = 0; i < Items.Count; i++)
+        {
+            if (Items[i] is HouseFurnitureItem furnitureItem)
+            {
+                furnitureItem.Update();
+            }
+        }
     }
 
     public void UpdateFurnitureSlot(int slot)
     {
-        // TODO: Update specific furniture slot when server sends update
-        // if (slot >= 0 && slot < FurnitureSlots.Count)
-        // {
-        //     FurnitureSlots[slot].Update();
-        // }
+        if (slot < 0 || slot >= Items.Count)
+        {
+            return;
+        }
+
+        if (Items[slot] is HouseFurnitureItem furnitureItem)
+        {
+            furnitureItem.Update();
+        }
     }
 
     public override void Hide()
     {
-        // TODO: Close context menu when implemented
-        // _contextMenu?.Close();
+        _contextMenu?.Close();
         base.Hide();
     }
 }

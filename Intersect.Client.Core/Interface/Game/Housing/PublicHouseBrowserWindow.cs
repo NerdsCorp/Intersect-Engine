@@ -1,121 +1,124 @@
+using Intersect.Client.Core;
+using Intersect.Client.Framework.File_Management;
 using Intersect.Client.Framework.Gwen.Control;
+using Intersect.Client.Framework.Gwen.Control.EventArguments;
+using Intersect.Client.General;
+using Intersect.Client.Localization;
 using Intersect.Network.Packets.Server;
 
 namespace Intersect.Client.Interface.Game.Housing;
 
-/// <summary>
-/// Public House Browser Window - Browse and Visit Public Houses
-/// TODO: Complete implementation with full UI controls
-/// Reference: Similar to quest log or friends list patterns
-/// </summary>
-public partial class PublicHouseBrowserWindow : Window
+public partial class PublicHouseBrowserWindow
 {
-    // TODO: Add proper controls
-    // private readonly ListBox _houseList;
-    // private readonly Label _houseOwnerLabel;
-    // private readonly Label _houseNameLabel;
-    // private readonly Label _houseDescriptionLabel;
-    // private readonly Label _houseRatingLabel;
-    // private readonly Label _houseVisitsLabel;
-    // private readonly Button _visitButton;
-    // private readonly Button _rateButton;
-    // private readonly TextBox _searchBox;
-    // private readonly Button _searchButton;
-    // private readonly ComboBox _sortByCombo;
+    private Base _parent;
+    private WindowControl _window;
+    private Button _searchButton;
+    private Button _refreshButton;
+    private ScrollControl _houseContainer;
+    private ImagePanel _houseListAnchor;
+    private Label _resultCountLabel;
+    private TextBox _searchTextBox;
 
-    private readonly Label _todoLabel;
+    private List<PublicHouseRow> _rows;
 
-    public PublicHouseBrowserWindow(Canvas gameCanvas) : base(
-        gameCanvas,
-        "Public House Tours", // TODO: Use Strings.Houses.PublicTours when localization is added
-        false,
-        nameof(PublicHouseBrowserWindow)
-    )
+    public PublicHouseBrowserWindow(Canvas gameCanvas)
     {
-        DisableResizing();
-        Interface.InputBlockingComponents.Add(this);
+        _parent = gameCanvas;
 
-        Alignment = [Alignments.Center];
-        MinimumSize = new Point(x: 500, y: 600);
-        IsResizable = false;
-        IsClosable = true;
+        GenerateControls();
+        _window.LoadJsonUi(GameContentManager.UI.InGame, Graphics.Renderer.GetResolutionString());
 
-        // TODO: Remove this temporary label and implement actual UI
-        _todoLabel = new Label(this)
-        {
-            Text = "Public House Browser - Under Construction\n\n" +
-                   "TODO: Implement house list display\n" +
-                   "TODO: Add search functionality\n" +
-                   "TODO: Add sorting options (by rating, visits, name)\n" +
-                   "TODO: Add house preview (owner, name, rating, visits)\n" +
-                   "TODO: Add visit button\n" +
-                   "TODO: Add rating functionality (1-5 stars)\n" +
-                   "TODO: Add pagination for large lists\n\n" +
-                   "See HOUSING_CLIENT_TODO.md for implementation details",
-            Dock = Pos.Fill,
-            Alignment = Pos.Center,
-            TextAlign = Pos.Center
-        };
-
-        // TODO: Initialize actual controls
-        // _houseList = new ListBox(this) { ... };
-        // _searchBox = new TextBox(this) { ... };
-        // etc.
+        UpdateList(null);
     }
 
-    // TODO: Implement
-    // protected override void EnsureInitialized()
-    // {
-    //     LoadJsonUi(GameContentManager.UI.InGame, Graphics.Renderer.GetResolutionString());
-    //     InitializeControls();
-    // }
-
-    public void UpdateList(PublicHouseListPacket packet)
+    private void GenerateControls()
     {
-        // TODO: Update the house list from server packet
-        // _houseList.Clear();
-        // foreach (var house in packet.Houses)
-        // {
-        //     var listItem = _houseList.AddRow(house.HouseName);
-        //     listItem.UserData = house;
-        // }
+        _window = new WindowControl(_parent, "Public House Tours", false, "PublicHouseBrowserWindow");
+        _searchTextBox = new TextBox(_window, "SearchTextBox");
+        _searchButton = new Button(_window, "SearchButton");
+        _refreshButton = new Button(_window, "RefreshButton");
+        _houseContainer = new ScrollControl(_window, "HouseContainer");
+        _houseListAnchor = new ImagePanel(_houseContainer, "HouseListAnchor");
+        _resultCountLabel = new Label(_window, "ResultCountLabel");
+
+        _window.DisableResizing();
+        _houseContainer.EnableScroll(false, true);
+
+        _searchButton.SetText("Search");
+        _refreshButton.SetText("Refresh");
+        _searchTextBox.SetPlaceholderText("Search by owner name or house name...");
+
+        _searchButton.Clicked += SearchButton_Clicked;
+        _refreshButton.Clicked += RefreshButton_Clicked;
     }
+
+    public bool IsVisible => !_window.IsHidden;
+
+    public void Show() => _window.Show();
+
+    public void Hide() => _window.Hide();
 
     public void Update()
     {
-        if (IsVisibleInTree == false)
+        if (!IsVisible)
         {
+            ClearList();
+        }
+    }
+
+    private void ClearList()
+    {
+        if (_rows != null && _rows.Count > 0)
+        {
+            foreach (var control in _rows)
+            {
+                control.Dispose();
+            }
+            _rows.Clear();
+        }
+        else if (_rows == null)
+        {
+            _rows = new List<PublicHouseRow>();
+        }
+    }
+
+    public void UpdateList(PublicHouseListPacket? packet)
+    {
+        ClearList();
+
+        if (packet == null || packet.Houses == null || packet.Houses.Length == 0)
+        {
+            _resultCountLabel.SetText("No public houses available for touring.");
             return;
         }
 
-        // TODO: Update UI elements if needed
+        _resultCountLabel.SetText($"Showing {packet.Houses.Length} of {packet.TotalCount} public houses");
+
+        var count = 0;
+        foreach (var house in packet.Houses)
+        {
+            var control = new PublicHouseRow(_houseContainer, house);
+            control.SetPosition(
+                _houseListAnchor.Bounds.X,
+                _houseListAnchor.Bounds.Y + (count * control.Bounds.Height)
+            );
+
+            _rows.Add(control);
+            count++;
+        }
     }
 
-    // TODO: Implement search functionality
-    // private void OnSearchClicked()
-    // {
-    //     var searchTerm = _searchBox.Text;
-    //     // Send search request to server
-    //     PacketSender.SendPublicHouseSearch(searchTerm, _sortByCombo.SelectedIndex);
-    // }
+    private void SearchButton_Clicked(Base sender, MouseButtonState arguments)
+    {
+        // TODO: Send packet to server to search for public houses
+        // For now, just show a message
+        _resultCountLabel.SetText("Search functionality requires server-side implementation.");
+    }
 
-    // TODO: Implement visit functionality
-    // private void OnVisitClicked()
-    // {
-    //     if (_houseList.SelectedRow?.UserData is PublicHouseInfo house)
-    //     {
-    //         // Send visit request to server (use EnterHouse event command)
-    //         PacketSender.SendVisitPublicHouse(house.HouseId);
-    //     }
-    // }
-
-    // TODO: Implement rating functionality
-    // private void OnRateClicked()
-    // {
-    //     if (_houseList.SelectedRow?.UserData is PublicHouseInfo house)
-    //     {
-    //         // Show rating dialog (1-5 stars)
-    //         // Send rating to server (use RateHouse event command)
-    //     }
-    // }
+    private void RefreshButton_Clicked(Base sender, MouseButtonState arguments)
+    {
+        // TODO: Send packet to server to refresh the public house list
+        // For now, just show a message
+        _resultCountLabel.SetText("Refresh functionality requires server-side implementation.");
+    }
 }
