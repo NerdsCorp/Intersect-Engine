@@ -1774,7 +1774,7 @@ public partial class FrmMain : Form
 
     }
 
-    private void packAssets(string rootDirectory)
+    public static void packAssets(string rootDirectory, Form parentForm = null)
     {
         //TODO: Make packing heuristic that the texture packer class should use configurable.
         var preferenceMusicPackSize = Preferences.LoadPreference("MusicPackSize");
@@ -1784,7 +1784,7 @@ public partial class FrmMain : Form
         if (!int.TryParse(preferenceMusicPackSize, out var musicPackSize))
         {
             _ = MessageBox.Show(
-                this,
+                parentForm,
                 Strings.Errors.UnableToParseInvalidIntegerFormat.ToString(preferenceMusicPackSize),
                 Strings.Errors.InvalidInputXCaption.ToString(Strings.Options.MusicPackSize),
                 MessageBoxButtons.OK,
@@ -1796,7 +1796,7 @@ public partial class FrmMain : Form
         if (!int.TryParse(preferenceSoundPackSize, out var soundPackSize))
         {
             _ = MessageBox.Show(
-                this,
+                parentForm,
                 Strings.Errors.UnableToParseInvalidIntegerFormat.ToString(preferenceSoundPackSize),
                 Strings.Errors.InvalidInputXCaption.ToString(Strings.Options.SoundPackSize),
                 MessageBoxButtons.OK,
@@ -1808,7 +1808,7 @@ public partial class FrmMain : Form
         if (!int.TryParse(preferenceTexturePackSize, out var texturePackSize))
         {
             _ = MessageBox.Show(
-                this,
+                parentForm,
                 Strings.Errors.UnableToParseInvalidIntegerFormat.ToString(preferenceTexturePackSize),
                 Strings.Errors.InvalidInputXCaption.ToString(Strings.Options.TextureSize),
                 MessageBoxButtons.OK,
@@ -2097,7 +2097,7 @@ public partial class FrmMain : Form
         {
             Globals.PackingProgressForm = new FrmProgress();
             Globals.PackingProgressForm.SetTitle(Strings.AssetPacking.title);
-            var assetThread = new Thread(() => packAssets(sourceDirectory));
+            var assetThread = new Thread(() => packAssets(sourceDirectory, this));
             assetThread.Start();
             _ = Globals.PackingProgressForm.ShowDialog();
         }

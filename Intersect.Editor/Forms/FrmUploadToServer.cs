@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
@@ -379,6 +380,18 @@ public partial class FrmUploadToServer : DarkDialog
         }
 
         SaveSettings();
+
+        // Check if we should package assets before uploading
+        var packageUpdateAssets = Preferences.LoadPreference("PackageUpdateAssets");
+        if (!string.IsNullOrWhiteSpace(packageUpdateAssets) &&
+            Convert.ToBoolean(packageUpdateAssets, CultureInfo.InvariantCulture))
+        {
+            Globals.PackingProgressForm = new FrmProgress();
+            Globals.PackingProgressForm.SetTitle(Strings.AssetPacking.title);
+            var assetThread = new Thread(() => frmMain.packAssets(_selectedDirectory, this));
+            assetThread.Start();
+            _ = Globals.PackingProgressForm.ShowDialog();
+        }
 
         btnUpload.Enabled = false;
         btnBrowse.Enabled = false;
