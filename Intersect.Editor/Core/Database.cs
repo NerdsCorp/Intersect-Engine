@@ -72,7 +72,7 @@ public static partial class Database
 
         if (sDbConnection == null)
         {
-            sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME + ",Version=3");
+            sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME);
             sDbConnection.Open();
         }
 
@@ -86,7 +86,7 @@ public static partial class Database
 
     private static void CreateDatabase()
     {
-        sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME + ",Version=3,New=True");
+        sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME + ";Mode=ReadWriteCreate");
         sDbConnection.Open();
         CreateOptionsTable();
         CreateMapCacheTable();
