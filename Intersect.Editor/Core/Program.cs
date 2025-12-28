@@ -85,9 +85,9 @@ public static class Program
 
         ApplicationContext.CurrentContext.Logger.LogTrace("Unpacking libraries...");
 
-        //Place sqlite3.dll where it's needed.
+        //Place e_sqlite3.dll where it's needed (required by SQLitePCLRaw.bundle_e_sqlite3).
         var dllname = Environment.Is64BitProcess ? "sqlite3x64.dll" : "sqlite3x86.dll";
-        var targetPath = Path.Combine(Environment.CurrentDirectory, "sqlite3.dll");
+        var targetPath = Path.Combine(Environment.CurrentDirectory, "e_sqlite3.dll");
 
         using (var resourceStream = Assembly.GetExecutingAssembly()
                    .GetManifestResourceStream("Intersect.Editor.Resources." + dllname))
