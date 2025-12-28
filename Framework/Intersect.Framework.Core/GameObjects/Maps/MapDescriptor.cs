@@ -356,6 +356,12 @@ public partial class MapDescriptor : DatabaseObject<MapDescriptor>
 
     public bool HideEquipment { get; set; }
 
+    /// <summary>
+    /// Indicates whether this map can be instanced per player for personal houses.
+    /// When true, each player can have their own separate instance of this map.
+    /// </summary>
+    public bool IsPersonalInstanceMap { get; set; }
+
     [NotMapped]
     [JsonIgnore]
     public object MapLock => mMapLock;

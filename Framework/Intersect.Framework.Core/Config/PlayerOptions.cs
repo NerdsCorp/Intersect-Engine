@@ -107,4 +107,14 @@ public partial class PlayerOptions
     /// Distance (in tiles) between players in which a trade offer can be sent and accepted.
     /// </summary>
     public int TradeRange { get; set; } = 6;
+
+    /// <summary>
+    /// Maximum number of furniture slots a player's house can have.
+    /// </summary>
+    public int MaxHouseFurnitureSlots { get; set; } = 100;
+
+    /// <summary>
+    /// Maximum number of visitors that can be invited to a house.
+    /// </summary>
+    public int MaxHouseVisitors { get; set; } = 50;
 }

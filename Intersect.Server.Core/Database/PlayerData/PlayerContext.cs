@@ -49,6 +49,12 @@ public abstract partial class PlayerContext : IntersectDbContext<PlayerContext>,
 
     public DbSet<UserVariable> User_Variables { get; set; }
 
+    public DbSet<PlayerHouse> PlayerHouses { get; set; }
+
+    public DbSet<HouseFurnitureSlot> House_Furniture { get; set; }
+
+    public DbSet<HouseVisitor> House_Visitors { get; set; }
+
     internal async ValueTask Commit(
         bool commit = false,
         CancellationToken cancellationToken = default(CancellationToken)
@@ -119,6 +125,11 @@ public abstract partial class PlayerContext : IntersectDbContext<PlayerContext>,
 
         modelBuilder.Entity<User>().HasMany(b => b.Variables).WithOne(p => p.User);
         modelBuilder.Entity<UserVariable>().HasIndex(p => new { p.VariableId, p.UserId }).IsUnique();
+
+        modelBuilder.Entity<Player>().HasOne(p => p.House).WithOne(h => h.Owner).HasForeignKey<PlayerHouse>(h => h.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PlayerHouse>().HasMany(h => h.Furniture).WithOne(f => f.House).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PlayerHouse>().HasMany(h => h.Visitors).WithOne(v => v.House).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<HouseFurnitureSlot>().HasOne(f => f.Bag);
     }
 
     public void Seed()
@@ -191,6 +202,17 @@ public abstract partial class PlayerContext : IntersectDbContext<PlayerContext>,
 
         foreach (var itm in player.Bank)
             Entry(itm).State = EntityState.Detached;
+
+        if (player.House != null)
+        {
+            foreach (var itm in player.House.Furniture)
+                Entry(itm).State = EntityState.Detached;
+
+            foreach (var itm in player.House.Visitors)
+                Entry(itm).State = EntityState.Detached;
+
+            Entry(player.House).State = EntityState.Detached;
+        }
     }
 
 }

@@ -276,6 +276,18 @@ public partial class Player : Entity
     [NotMapped] public bool GuildBank;
 
     /// <summary>
+    /// The player's house (one per player).
+    /// </summary>
+    [JsonIgnore]
+    public virtual PlayerHouse House { get; set; }
+
+    /// <summary>
+    /// ID of the house currently being visited (may not be the player's own house).
+    /// </summary>
+    [NotMapped, JsonIgnore]
+    public Guid VisitingHouseId { get; set; } = Guid.Empty;
+
+    /// <summary>
     /// Used to tell events when to continue when dealing with fade in/out events and knowing when they're complete on the client's end
     /// </summary>
     [NotMapped, JsonIgnore]
@@ -7870,6 +7882,10 @@ public partial class Player : Entity
     [NotMapped] public bool InBank => BankInterface != null;
 
     [NotMapped, JsonIgnore] public IBankInterface BankInterface;
+
+    [NotMapped] public bool InHouse => HouseInterface != null;
+
+    [NotMapped, JsonIgnore] public IHouseInterface HouseInterface;
 
     #endregion
 
