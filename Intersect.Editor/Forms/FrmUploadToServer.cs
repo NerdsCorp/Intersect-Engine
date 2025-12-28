@@ -340,7 +340,7 @@ public partial class FrmUploadToServer : DarkDialog
         {
             Globals.PackingProgressForm = new FrmProgress();
             Globals.PackingProgressForm.SetTitle(Strings.AssetPacking.title);
-            var assetThread = new Thread(() => frmMain.packAssets(_selectedDirectory, this));
+            var assetThread = new Thread(() => FrmMain.packAssets(_selectedDirectory, this));
             assetThread.Start();
             _ = Globals.PackingProgressForm.ShowDialog();
         }
