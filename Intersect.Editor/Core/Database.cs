@@ -1,6 +1,6 @@
 using Intersect.Configuration;
 using Intersect.Editor.Configuration;
-using Microsoft.Data.Sqlite;
+using System.Data.SQLite;
 
 namespace Intersect.Editor.Core;
 
@@ -41,7 +41,7 @@ public static partial class Database
 
     public static int GridLightColor = System.Drawing.Color.White.ToArgb();
 
-    private static SqliteConnection sDbConnection;
+    private static SQLiteConnection sDbConnection;
 
     //Options File
     public static void LoadOptions()
@@ -64,7 +64,7 @@ public static partial class Database
             Directory.CreateDirectory("resources");
         }
 
-        // Note: Microsoft.Data.Sqlite handles thread safety internally, no need to set serialized mode
+        // Note: System.Data.SQLite handles thread safety internally, no need to set serialized mode
         if (!File.Exists(DB_FILENAME))
         {
             CreateDatabase();
@@ -72,7 +72,7 @@ public static partial class Database
 
         if (sDbConnection == null)
         {
-            sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME + ",Version=3");
+            sDbConnection = new SQLiteConnection("Data Source=" + DB_FILENAME + ";Version=3");
             sDbConnection.Open();
         }
 
@@ -86,7 +86,7 @@ public static partial class Database
 
     private static void CreateDatabase()
     {
-        sDbConnection = new SqliteConnection("Data Source=" + DB_FILENAME + ",Version=3,New=True");
+        sDbConnection = new SQLiteConnection("Data Source=" + DB_FILENAME + ";Version=3");
         sDbConnection.Open();
         CreateOptionsTable();
         CreateMapCacheTable();
@@ -138,10 +138,10 @@ public static partial class Database
                     OPTION_VALUE +
                     ");";
 
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + OPTION_NAME, name));
-            cmd.Parameters.Add(new SqliteParameter("@" + OPTION_VALUE, value));
+            cmd.Parameters.Add(new SQLiteParameter("@" + OPTION_NAME, name));
+            cmd.Parameters.Add(new SQLiteParameter("@" + OPTION_VALUE, value));
             cmd.ExecuteNonQuery();
         }
     }
@@ -149,9 +149,9 @@ public static partial class Database
     public static string GetOptionStr(string name)
     {
         var query = "SELECT * from " + OPTION_TABLE + " WHERE " + OPTION_NAME + "=@" + OPTION_NAME + ";";
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + OPTION_NAME, name));
+            cmd.Parameters.Add(new SQLiteParameter("@" + OPTION_NAME, name));
             var dataReader = cmd.ExecuteReader();
             while (dataReader.Read())
             {
@@ -281,12 +281,12 @@ public static partial class Database
             query += " AND " + MAP_CACHE_REVISION + "=@" + MAP_CACHE_REVISION;
         }
 
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_ID, id.ToString()));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_ID, id.ToString()));
             if (revision > -1)
             {
-                cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_REVISION, revision.ToString()));
+                cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_REVISION, revision.ToString()));
             }
 
             var dataReader = cmd.ExecuteReader();
@@ -324,17 +324,17 @@ public static partial class Database
                     MAP_CACHE_DATA +
                     ");";
 
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_ID, id.ToString()));
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_REVISION, revision));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_ID, id.ToString()));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_REVISION, revision));
             if (data != null)
             {
-                cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_DATA, data));
+                cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_DATA, data));
             }
             else
             {
-                cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_DATA, null));
+                cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_DATA, null));
             }
 
             cmd.ExecuteNonQuery();
@@ -354,10 +354,10 @@ public static partial class Database
                     " = @" +
                     MAP_CACHE_ID;
 
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_ID, id.ToString()));
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_DATA, null));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_ID, id.ToString()));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_DATA, null));
             cmd.ExecuteNonQuery();
         }
     }
@@ -365,9 +365,9 @@ public static partial class Database
     public static void ClearAllMapCache()
     {
         var query = "UPDATE " + MAP_CACHE_TABLE + " SET " + MAP_CACHE_DATA + " = @" + MAP_CACHE_DATA;
-        using (var cmd = new SqliteCommand(query, sDbConnection))
+        using (var cmd = new SQLiteCommand(query, sDbConnection))
         {
-            cmd.Parameters.Add(new SqliteParameter("@" + MAP_CACHE_DATA, null));
+            cmd.Parameters.Add(new SQLiteParameter("@" + MAP_CACHE_DATA, null));
             cmd.ExecuteNonQuery();
         }
     }
