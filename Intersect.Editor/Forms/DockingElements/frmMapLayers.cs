@@ -753,7 +753,7 @@ public partial class FrmMapLayers : DockContent
         return critterAttribute;
     }
 
-    public MapAttribute PlaceAttribute(MapDescriptor mapDescriptor, int x, int y, MapAttribute attribute = null)
+    public MapAttribute PlaceAttribute(MapDescriptor mapDescriptor, int x, int y, MapAttribute? attribute = null)
     {
         if (attribute == null)
         {

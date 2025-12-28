@@ -553,7 +553,7 @@ public partial class FrmMain : Form
     }
 
     //Update
-    public void Update()
+    public new void Update()
     {
         if (Globals.CurrentMap != null)
         {

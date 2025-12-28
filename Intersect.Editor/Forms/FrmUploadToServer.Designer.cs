@@ -41,7 +41,7 @@ namespace Intersect.Editor.Forms
             this.btnBrowse = new DarkUI.Controls.DarkButton();
             this.btnUpload = new DarkUI.Controls.DarkButton();
             this.btnClose = new DarkUI.Controls.DarkButton();
-            this.progressBar = new DarkUI.Controls.DarkProgressBar();
+            this.progressBar = new System.Windows.Forms.ProgressBar();
             this.lblStatus = new DarkUI.Controls.DarkLabel();
             this.grpUploadType = new DarkUI.Controls.DarkGroupBox();
             this.grpUploadType.SuspendLayout();
@@ -221,8 +221,8 @@ namespace Intersect.Editor.Forms
         private DarkTextBox txtDirectory;
         private DarkButton btnBrowse;
         private DarkButton btnUpload;
-        private DarkButton btnClose;
-        private DarkProgressBar progressBar;
+        private new DarkButton btnClose;
+        private System.Windows.Forms.ProgressBar progressBar;
         private DarkLabel lblStatus;
         private DarkGroupBox grpUploadType;
     }

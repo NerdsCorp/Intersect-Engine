@@ -12,7 +12,7 @@ public partial class MapTreeList : UserControl
     private readonly Dictionary<MapListItem, TreeNode> _nodeLookup = new();
 
     //Cross Thread Delegates
-    public delegate void TryUpdateMapList(Guid selectMap, List<Guid> restrictMaps = null);
+    public delegate void TryUpdateMapList(Guid selectMap, List<Guid>? restrictMaps = null);
 
     public bool Chronological = false;
 
@@ -406,7 +406,7 @@ public partial class MapTreeList : UserControl
         }
     }
 
-    public static void Scroll(Control control)
+    public static new void Scroll(Control control)
     {
         var pt = control.PointToClient(Cursor.Position);
 

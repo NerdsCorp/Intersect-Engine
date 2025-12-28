@@ -31,7 +31,7 @@ public partial class EventGraphicSelector : UserControl
     public EventGraphicSelector(
         EventGraphic editingGraphic,
         FrmEvent eventEditor,
-        EventMoveRouteDesigner moveRouteDesigner = null,
+        EventMoveRouteDesigner? moveRouteDesigner = null,
         bool newMoveRouteAction = false
     )
     {

@@ -14,7 +14,7 @@ public partial struct GridCell
 
     public Color? LabelColor { get; private set; }
 
-    public GridCell(int x, int y, Color? color = default, string label = null, Color? labelColor = default)
+    public GridCell(int x, int y, Color? color = default, string? label = null, Color? labelColor = default)
     {
         X = x;
         Y = y;
