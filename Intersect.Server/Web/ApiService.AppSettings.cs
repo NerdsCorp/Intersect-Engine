@@ -356,6 +356,13 @@ internal partial class ApiService
                         throw new ArgumentOutOfRangeException();
                 }
 
+                // Add Subject Alternative Name (SAN) extension to support modern browsers
+                var sanBuilder = new SubjectAlternativeNameBuilder();
+                sanBuilder.AddDnsName("localhost");
+                sanBuilder.AddIpAddress(System.Net.IPAddress.Loopback);
+                sanBuilder.AddIpAddress(System.Net.IPAddress.IPv6Loopback);
+                certificateRequest.CertificateExtensions.Add(sanBuilder.Build());
+
                 var selfSignedCertificate = certificateRequest.CreateSelfSigned(
                     DateTimeOffset.Now,
                     DateTimeOffset.Now.AddDays(30)
