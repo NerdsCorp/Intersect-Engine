@@ -193,6 +193,16 @@ public sealed class EditorUpdatesController : ControllerBase
 
             try
             {
+                // Ensure the parent directory exists (file.FileName may contain subdirectories)
+                if (fileInfo.Directory != null && !fileInfo.Directory.Exists)
+                {
+                    fileInfo.Directory.Create();
+                    _logger.LogDebug(
+                        "Created directory for file upload: {DirectoryPath}",
+                        Path.GetRelativePath(assetRootPath, fileInfo.Directory.FullName)
+                    );
+                }
+
                 // Write the file (overwrites if exists - this is intentional for updates)
                 using var networkStream = file.OpenReadStream();
                 using var targetStream = fileInfo.Open(
