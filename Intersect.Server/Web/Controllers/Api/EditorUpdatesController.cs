@@ -7,6 +7,7 @@ using Intersect.Server.Web.Extensions;
 using Intersect.Server.Web.Http;
 using Intersect.Server.Web.Types;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -54,6 +55,9 @@ public sealed class EditorUpdatesController : ControllerBase
     /// <param name="subfolder">Optional subfolder within assets/client (e.g., "resources", "resources/images")</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("client")]
+    [Consumes("multipart/form-data")]
+    [DisableRequestSizeLimit]
+    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue, ValueLengthLimit = int.MaxValue)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.OK, ContentTypes.Json)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.MultiStatus, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
@@ -73,6 +77,9 @@ public sealed class EditorUpdatesController : ControllerBase
     /// <param name="subfolder">Optional subfolder within assets/editor</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("editor")]
+    [Consumes("multipart/form-data")]
+    [DisableRequestSizeLimit]
+    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue, ValueLengthLimit = int.MaxValue)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.OK, ContentTypes.Json)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.MultiStatus, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
