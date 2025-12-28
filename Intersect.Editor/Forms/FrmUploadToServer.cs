@@ -29,28 +29,21 @@ public partial class FrmUploadToServer : DarkDialog
 
     private void LoadSettings()
     {
-        // Load saved settings
         var savedUrl = Preferences.LoadPreference("upload_serverUrl");
         if (!string.IsNullOrWhiteSpace(savedUrl))
         {
             txtServerUrl.Text = savedUrl;
         }
-        else if (ClientConfiguration.Instance.UpdateUrl is { } updateUrl && !string.IsNullOrWhiteSpace(updateUrl))
+        else if (ClientConfiguration.Instance.UpdateUrl is { } updateUrl &&
+                 !string.IsNullOrWhiteSpace(updateUrl))
         {
             txtServerUrl.Text = updateUrl;
         }
 
         var savedType = Preferences.LoadPreference("upload_type");
-        if (savedType == "editor")
-        {
-            rbEditorAssets.Checked = true;
-        }
-        else
-        {
-            rbClientAssets.Checked = true;
-        }
+        rbEditorAssets.Checked = savedType == "editor";
+        rbClientAssets.Checked = !rbEditorAssets.Checked;
 
-        // Try to load token from preferences
         var rawTokenResponse = Preferences.LoadPreference(nameof(TokenResponse));
         if (!string.IsNullOrWhiteSpace(rawTokenResponse))
         {
@@ -60,7 +53,7 @@ public partial class FrmUploadToServer : DarkDialog
             }
             catch
             {
-                // Token deserialization failed, will need to authenticate
+                _tokenResponse = null;
             }
         }
     }
@@ -69,6 +62,7 @@ public partial class FrmUploadToServer : DarkDialog
     {
         Preferences.SavePreference("upload_serverUrl", txtServerUrl.Text);
         Preferences.SavePreference("upload_type", rbEditorAssets.Checked ? "editor" : "client");
+
         if (!string.IsNullOrWhiteSpace(_selectedDirectory))
         {
             Preferences.SavePreference("upload_lastDirectory", _selectedDirectory);
@@ -99,7 +93,6 @@ public partial class FrmUploadToServer : DarkDialog
 
     private async void btnUpload_Click(object sender, EventArgs e)
     {
-        // Validate inputs
         if (string.IsNullOrWhiteSpace(txtServerUrl.Text))
         {
             DarkMessageBox.ShowError(
@@ -111,7 +104,8 @@ public partial class FrmUploadToServer : DarkDialog
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_selectedDirectory) || !Directory.Exists(_selectedDirectory))
+        if (string.IsNullOrWhiteSpace(_selectedDirectory) ||
+            !Directory.Exists(_selectedDirectory))
         {
             DarkMessageBox.ShowError(
                 Strings.UploadToServer.InvalidDirectory,
@@ -124,12 +118,12 @@ public partial class FrmUploadToServer : DarkDialog
 
         SaveSettings();
 
-        // Disable controls during upload
         btnUpload.Enabled = false;
         btnBrowse.Enabled = false;
         txtServerUrl.Enabled = false;
         rbClientAssets.Enabled = false;
         rbEditorAssets.Enabled = false;
+
         progressBar.Value = 0;
         lblStatus.Text = Strings.UploadToServer.Uploading.ToString(0);
 
@@ -141,7 +135,7 @@ public partial class FrmUploadToServer : DarkDialog
         {
             lblStatus.Text = Strings.UploadToServer.Error.ToString(ex.Message);
             DarkMessageBox.ShowError(
-                Strings.UploadToServer.Error.ToString(ex.Message),
+                ex.Message,
                 Strings.UploadToServer.Failed,
                 DarkDialogButton.Ok,
                 Icon
@@ -149,7 +143,6 @@ public partial class FrmUploadToServer : DarkDialog
         }
         finally
         {
-            // Re-enable controls
             btnUpload.Enabled = true;
             btnBrowse.Enabled = true;
             txtServerUrl.Enabled = true;
@@ -164,50 +157,92 @@ public partial class FrmUploadToServer : DarkDialog
         var serverUrl = txtServerUrl.Text.TrimEnd('/');
         var endpoint = $"{serverUrl}/api/v1/editor/updates/{uploadType}";
 
-        // Get all files in the directory
-        var files = Directory.GetFiles(_selectedDirectory!, "*.*", SearchOption.AllDirectories);
+        var files = Directory.GetFiles(
+            _selectedDirectory!,
+            "*.*",
+            SearchOption.AllDirectories
+        );
+
         var totalFiles = files.Length;
         var uploadedFiles = 0;
 
-        using var httpClient = new HttpClient();
-        httpClient.Timeout = TimeSpan.FromMinutes(30); // Long timeout for large uploads
+        using var httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromMinutes(30)
+        };
 
-        // Add authorization header if we have a token
         if (_tokenResponse != null)
         {
             httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
         }
 
-        // Upload files in batches
         const int batchSize = 10;
+        const int maxRetries = 3;
+
         for (var i = 0; i < files.Length; i += batchSize)
         {
             var batch = files.Skip(i).Take(batchSize).ToArray();
+            var attempt = 0;
 
-            using var content = new MultipartFormDataContent();
-
-            foreach (var filePath in batch)
+            while (true)
             {
-                var relativePath = Path.GetRelativePath(_selectedDirectory!, filePath);
-                var fileContent = new ByteArrayContent(await File.ReadAllBytesAsync(filePath));
-                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
-                content.Add(fileContent, "files", relativePath.Replace('\\', '/'));
+                try
+                {
+                    using var content = new MultipartFormDataContent();
+
+                    foreach (var filePath in batch)
+                    {
+                        var relativePath = Path
+                            .GetRelativePath(_selectedDirectory!, filePath)
+                            .Replace('\\', '/');
+
+                        var stream = File.OpenRead(filePath);
+                        var fileContent = new StreamContent(stream);
+                        fileContent.Headers.ContentType =
+                            MediaTypeHeaderValue.Parse("application/octet-stream");
+
+                        content.Add(fileContent, "files", relativePath);
+                    }
+
+                    var response = await httpClient.PostAsync(endpoint, content);
+
+                    if (response.StatusCode ==
+                        System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        throw new Exception(
+                            "Authentication expired. Please log in again."
+                        );
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var error = await response.Content.ReadAsStringAsync();
+                        throw new Exception(
+                            $"Upload failed ({response.StatusCode}): {error}"
+                        );
+                    }
+
+                    uploadedFiles += batch.Length;
+                    var progress = (int)(
+                        uploadedFiles / (float)totalFiles * 100
+                    );
+
+                    progressBar.Value = Math.Min(progress, 100);
+                    lblStatus.Text =
+                        Strings.UploadToServer.FilesUploaded
+                            .ToString(uploadedFiles, totalFiles);
+
+                    break;
+                }
+                catch when (++attempt <= maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                    lblStatus.Text =
+                        $"Retrying batch ({attempt}/{maxRetries})...";
+                    await Task.Delay(delay);
+                }
             }
-
-            var response = await httpClient.PostAsync(endpoint, content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Upload failed with status {response.StatusCode}: {errorContent}");
-            }
-
-            uploadedFiles += batch.Length;
-            var progress = (int)((uploadedFiles / (float)totalFiles) * 100);
-            progressBar.Value = Math.Min(progress, 100);
-            lblStatus.Text = Strings.UploadToServer.FilesUploaded.ToString(uploadedFiles, totalFiles);
-            Application.DoEvents();
         }
 
         progressBar.Value = 100;
