@@ -681,7 +681,20 @@ public partial class FrmUploadToServer : DarkDialog
         var totalFiles = files.Length;
         var uploadedFiles = 0;
 
-        using var httpClient = new HttpClient
+        // Create HTTP client with SSL bypass for localhost
+        var handler = new HttpClientHandler();
+        var uri = new Uri(serverUrl);
+        if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+            uri.Host == "127.0.0.1" ||
+            uri.Host.StartsWith("192.168.") ||
+            uri.Host.StartsWith("10.") ||
+            uri.Host.StartsWith("172."))
+        {
+            // Bypass SSL validation for local/private network addresses
+            handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+        }
+
+        using var httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromMinutes(30)
         };
@@ -819,7 +832,21 @@ public partial class FrmUploadToServer : DarkDialog
         try
         {
             var serverUrl = txtServerUrl.Text.TrimEnd('/');
-            using var httpClient = new HttpClient
+
+            // Create HTTP client with SSL bypass for localhost
+            var handler = new HttpClientHandler();
+            var uri = new Uri(serverUrl);
+            if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                uri.Host == "127.0.0.1" ||
+                uri.Host.StartsWith("192.168.") ||
+                uri.Host.StartsWith("10.") ||
+                uri.Host.StartsWith("172."))
+            {
+                // Bypass SSL validation for local/private network addresses
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+            }
+
+            using var httpClient = new HttpClient(handler)
             {
                 Timeout = TimeSpan.FromSeconds(10)
             };
