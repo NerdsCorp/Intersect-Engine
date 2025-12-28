@@ -718,11 +718,16 @@ public partial class FrmUploadToServer : DarkDialog
             Timeout = TimeSpan.FromMinutes(30)
         };
 
-        if (_tokenResponse != null)
+        // Double-check authentication before starting upload
+        if (_tokenResponse == null || string.IsNullOrWhiteSpace(_tokenResponse.AccessToken))
         {
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
+            throw new Exception(
+                "Cannot upload without authentication. Please login first."
+            );
         }
+
+        httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
 
         const int batchSize = 10;
         const int maxRetries = 3;
