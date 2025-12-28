@@ -409,6 +409,14 @@ internal partial class ApiService : ApplicationService<ServerContext, IApiServic
 
         builder.Services.AddResponseCaching();
 
+        // Configure form options to support large file uploads
+        builder.Services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = 524_288_000; // 500 MB
+            options.ValueLengthLimit = int.MaxValue;
+            options.MultipartHeadersLengthLimit = int.MaxValue;
+        });
+
         builder.Services.AddMvc(o => o.CacheProfiles.Add(nameof(AvatarController), AvatarController.ResponseCacheProfile))
             .WithRazorPagesRoot("/Web/Pages")
             .AddRazorPagesOptions(

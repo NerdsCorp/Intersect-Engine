@@ -54,6 +54,8 @@ public sealed class EditorUpdatesController : ControllerBase
     /// <param name="subfolder">Optional subfolder within assets/client (e.g., "resources", "resources/images")</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("client")]
+    [RequestSizeLimit(524_288_000)] // 500 MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 524_288_000)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.OK, ContentTypes.Json)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.MultiStatus, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
@@ -73,6 +75,8 @@ public sealed class EditorUpdatesController : ControllerBase
     /// <param name="subfolder">Optional subfolder within assets/editor</param>
     /// <returns>Upload results for each file</returns>
     [HttpPost("editor")]
+    [RequestSizeLimit(524_288_000)] // 500 MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 524_288_000)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.OK, ContentTypes.Json)]
     [ProducesResponseType(typeof(UploadResponse), (int)HttpStatusCode.MultiStatus, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
