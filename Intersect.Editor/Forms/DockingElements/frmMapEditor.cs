@@ -1579,7 +1579,7 @@ public partial class FrmMapEditor : DockContent
         }
     }
 
-    private void SmartFillAttribute(int x, int y, string data = null, MapAttribute newAttribute = null)
+    private void SmartFillAttribute(int x, int y, string? data = null, MapAttribute? newAttribute = null)
     {
         if (x < 0 || x >= Options.Instance.Map.MapWidth || y < 0 || y >= Options.Instance.Map.MapHeight)
         {

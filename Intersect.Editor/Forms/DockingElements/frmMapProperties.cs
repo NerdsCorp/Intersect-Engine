@@ -40,7 +40,7 @@ public partial class FrmMapProperties : DockContent
         Text = Strings.MapProperties.title;
     }
 
-    public void Update()
+    public new void Update()
     {
         gridMapProperties.Refresh();
     }

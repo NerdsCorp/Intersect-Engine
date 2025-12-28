@@ -30,7 +30,7 @@ public partial class EventMoveRouteDesigner : UserControl
         MapDescriptor currentMap,
         EventDescriptor currentEvent,
         EventMoveRoute editingRoute,
-        SetMoveRouteCommand editingCommand = null,
+        SetMoveRouteCommand? editingCommand = null,
         bool disableRouteTarget = false
     )
     {
