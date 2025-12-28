@@ -1851,9 +1851,10 @@ public partial class FrmMain : Form
         var textureDirectories = new[]
         {
             "tilesets", "fogs", "gui", "paperdolls", "resources", "spells",
-            "faces", "fonts", "items", "misc", "animations", "entities",
-            "images", "updater"
+            "faces", "items", "misc", "animations", "entities", "images", "updater"
         };
+        // Note: fonts directory is excluded because it contains only .xnb files, not PNG textures
+        // updater directory is included because it can contain PNG files like progressbar.png
 
         foreach (var dir in textureDirectories)
         {
@@ -1957,39 +1958,8 @@ public partial class FrmMain : Form
             musicPackSize
         );
 
-        // Package up fonts if the directory exists
-        var fontsDirectory = Path.Combine(resourcesDirectory, "fonts");
-        if (Directory.Exists(fontsDirectory) && Directory.GetFiles(fontsDirectory, "*.xnb").Length > 0)
-        {
-            Globals.PackingProgressForm.SetProgress("Packing fonts...", 93, false);
-            Application.DoEvents();
-            AssetPacker.PackageAssets(
-                fontsDirectory,
-                "*.xnb",
-                packsDirectory,
-                "fonts.index",
-                "fonts",
-                ".asset",
-                soundPackSize
-            );
-        }
-
-        // Package up updater files if the directory exists
-        var updaterDirectory = Path.Combine(resourcesDirectory, "updater");
-        if (Directory.Exists(updaterDirectory) && Directory.GetFiles(updaterDirectory, "*.*").Length > 0)
-        {
-            Globals.PackingProgressForm.SetProgress("Packing updater files...", 96, false);
-            Application.DoEvents();
-            AssetPacker.PackageAssets(
-                updaterDirectory,
-                "*.*",
-                packsDirectory,
-                "updater.index",
-                "updater",
-                ".asset",
-                soundPackSize
-            );
-        }
+        // Note: Fonts and updater files are NOT packed because the client
+        // loads them directly from the file system and doesn't support unpacking them
 
         Globals.PackingProgressForm.SetProgress(Strings.AssetPacking.done, 100, false);
         Application.DoEvents();
