@@ -2378,4 +2378,120 @@ internal sealed partial class PacketHandler
         }
     }
 
+    // Player Housing Packets
+
+    //HousePacket
+    public void HandlePacket(IPacketSender packetSender, HousePacket packet)
+    {
+        if (!packet.Close)
+        {
+            Globals.InHouse = true;
+            Globals.CurrentHouseId = packet.HouseId;
+            Globals.CurrentHouseOwnerId = packet.OwnerId;
+            Globals.HouseFurnitureSlots = new Item[packet.FurnitureSlots];
+            Globals.HouseFurnitureSlotCount = packet.FurnitureSlots;
+
+            // Initialize furniture slots with packet data
+            if (packet.Furniture != null)
+            {
+                foreach (var furniture in packet.Furniture)
+                {
+                    HandlePacket(packetSender, furniture);
+                }
+            }
+
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyOpenHouse());
+        }
+        else
+        {
+            Globals.InHouse = false;
+            Globals.CurrentHouseId = Guid.Empty;
+            Globals.CurrentHouseOwnerId = Guid.Empty;
+            Globals.HouseFurnitureSlots = null;
+            Globals.HouseFurnitureSlotCount = 0;
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyCloseHouse());
+        }
+    }
+
+    //HouseFurnitureUpdatePacket
+    public void HandlePacket(IPacketSender packetSender, HouseFurnitureUpdatePacket packet)
+    {
+        if (Globals.HouseFurnitureSlots != null && packet.Slot >= 0 && packet.Slot < Globals.HouseFurnitureSlots.Length)
+        {
+            if (packet.ItemId != Guid.Empty)
+            {
+                Globals.HouseFurnitureSlots[packet.Slot] = new Item(
+                    packet.ItemId,
+                    packet.Quantity,
+                    null,
+                    packet.Properties
+                );
+            }
+            else
+            {
+                Globals.HouseFurnitureSlots[packet.Slot] = null;
+            }
+
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyHouseFurnitureUpdate(packet.Slot));
+        }
+    }
+
+    //FurnitureStoragePacket
+    public void HandlePacket(IPacketSender packetSender, FurnitureStoragePacket packet)
+    {
+        if (!packet.Close)
+        {
+            Globals.InFurnitureStorage = true;
+            Globals.FurnitureStorageSlots = new Item[packet.Slots];
+            Globals.FurnitureStorageSlotCount = packet.Slots;
+
+            // Initialize storage slots with packet data
+            if (packet.Items != null)
+            {
+                foreach (var item in packet.Items)
+                {
+                    HandlePacket(packetSender, item);
+                }
+            }
+
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyOpenFurnitureStorage());
+        }
+        else
+        {
+            Globals.InFurnitureStorage = false;
+            Globals.FurnitureStorageSlots = null;
+            Globals.FurnitureStorageSlotCount = 0;
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyCloseFurnitureStorage());
+        }
+    }
+
+    //FurnitureStorageUpdatePacket
+    public void HandlePacket(IPacketSender packetSender, FurnitureStorageUpdatePacket packet)
+    {
+        if (Globals.FurnitureStorageSlots != null && packet.Slot >= 0 && packet.Slot < Globals.FurnitureStorageSlots.Length)
+        {
+            if (packet.ItemId != Guid.Empty)
+            {
+                Globals.FurnitureStorageSlots[packet.Slot] = new Item(
+                    packet.ItemId,
+                    packet.Quantity,
+                    packet.BagId,
+                    packet.Properties
+                );
+            }
+            else
+            {
+                Globals.FurnitureStorageSlots[packet.Slot] = null;
+            }
+
+            Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyFurnitureStorageUpdate(packet.Slot));
+        }
+    }
+
+    //PublicHouseListPacket
+    public void HandlePacket(IPacketSender packetSender, PublicHouseListPacket packet)
+    {
+        Interface.Interface.EnqueueInGame(gameInterface => gameInterface.NotifyPublicHouseListUpdate(packet));
+    }
+
 }

@@ -115,6 +115,16 @@ public static partial class Globals
     public static bool IsGuildBank { get; set; }
     public static int BankSlotCount { get; set; }
 
+    //Player Housing
+    public static bool InHouse { get; set; }
+    public static Guid CurrentHouseId { get; set; }
+    public static Guid CurrentHouseOwnerId { get; set; }
+    public static Item[]? HouseFurnitureSlots { get; set; }
+    public static int HouseFurnitureSlotCount { get; set; }
+    public static bool InFurnitureStorage { get; set; }
+    public static Item[]? FurnitureStorageSlots { get; set; }
+    public static int FurnitureStorageSlotCount { get; set; }
+
     public static bool ConnectionLost { get; set; }
 
     /// <summary>
@@ -144,7 +154,7 @@ public static partial class Globals
 
     public static bool InShop => GameShop != null;
 
-    public static bool CanCloseInventory => !(InBag || InBank || InCraft || InShop || InTrade);
+    public static bool CanCloseInventory => !(InBag || InBank || InCraft || InShop || InTrade || InHouse || InFurnitureStorage);
 
     public static bool HoldToSoftRetargetOnSelfCast { get; set; }
 

@@ -534,4 +534,40 @@ public static partial class PacketSender
         Network.SendPacket(new TargetPacket(targetId));
     }
 
+    // Player Housing Packet Senders
+
+    public static void SendHouseFurnitureAction(
+        HouseFurnitureActionPacket.ActionType action,
+        int inventorySlot,
+        int furnitureSlot,
+        int x,
+        int y,
+        int direction)
+    {
+        Network.SendPacket(new HouseFurnitureActionPacket
+        {
+            Action = action,
+            InventorySlot = inventorySlot,
+            FurnitureSlot = furnitureSlot,
+            X = x,
+            Y = y,
+            Direction = direction
+        });
+    }
+
+    public static void SendFurnitureStorageInteraction(
+        FurnitureStorageInteractionPacket.ActionType action,
+        int inventorySlot,
+        int storageSlot,
+        int quantity)
+    {
+        Network.SendPacket(new FurnitureStorageInteractionPacket
+        {
+            Action = action,
+            InventorySlot = inventorySlot,
+            StorageSlot = storageSlot,
+            Quantity = quantity
+        });
+    }
+
 }
