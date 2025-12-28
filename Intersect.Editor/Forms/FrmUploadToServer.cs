@@ -63,7 +63,7 @@ public partial class FrmUploadToServer : DarkDialog
         {
             _selectedDirectory = savedDirectory;
             txtDirectory.Text = savedDirectory;
-            btnUpload.Enabled = true;
+            // Don't enable upload here - let UpdateAuthenticationStatus handle it
         }
 
         var rawTokenResponse = Preferences.LoadPreference(nameof(TokenResponse));
@@ -93,13 +93,17 @@ public partial class FrmUploadToServer : DarkDialog
 
         if (_tokenResponse != null)
         {
-            lblStatus.Text = "✓ Authenticated";
+            lblStatus.Text = "✓ Authenticated - Ready to upload";
             btnLogin.Text = "Re-Login";
+            // Only enable upload if we have authentication AND a directory selected
+            btnUpload.Enabled = !string.IsNullOrWhiteSpace(_selectedDirectory) && Directory.Exists(_selectedDirectory);
         }
         else
         {
-            lblStatus.Text = "⚠ Not authenticated - click Login to authenticate";
+            lblStatus.Text = "⚠ Not authenticated - Please click the Login button below to authenticate";
             btnLogin.Text = "Login";
+            // Disable upload when not authenticated
+            btnUpload.Enabled = false;
         }
 
         // Login button is always visible now
@@ -108,6 +112,7 @@ public partial class FrmUploadToServer : DarkDialog
         // Force UI refresh
         btnLogin.Refresh();
         lblStatus.Refresh();
+        btnUpload.Refresh();
     }
 
     private bool IsTokenExpired(TokenResponse token)
@@ -330,12 +335,26 @@ public partial class FrmUploadToServer : DarkDialog
         {
             _selectedDirectory = folderDialog.SelectedPath;
             txtDirectory.Text = _selectedDirectory;
-            btnUpload.Enabled = true;
+            // Only enable upload if authenticated
+            btnUpload.Enabled = _tokenResponse != null && !IsTokenExpired(_tokenResponse);
         }
     }
 
     private async void btnUpload_Click(object sender, EventArgs e)
     {
+        // Check authentication first
+        if (_tokenResponse == null || IsTokenExpired(_tokenResponse))
+        {
+            DarkMessageBox.ShowError(
+                "You must login before uploading.\n\nPlease click the 'Login' button below to authenticate.",
+                "Authentication Required",
+                DarkDialogButton.Ok,
+                Icon
+            );
+            UpdateAuthenticationStatus();
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(txtServerUrl.Text))
         {
             DarkMessageBox.ShowError(
@@ -699,11 +718,16 @@ public partial class FrmUploadToServer : DarkDialog
             Timeout = TimeSpan.FromMinutes(30)
         };
 
-        if (_tokenResponse != null)
+        // Double-check authentication before starting upload
+        if (_tokenResponse == null || string.IsNullOrWhiteSpace(_tokenResponse.AccessToken))
         {
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
+            throw new Exception(
+                "Cannot upload without authentication. Please login first."
+            );
         }
+
+        httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _tokenResponse.AccessToken);
 
         const int batchSize = 10;
         const int maxRetries = 3;
