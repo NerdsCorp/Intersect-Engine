@@ -2184,37 +2184,37 @@ public partial class FrmMain : Form
         var pathToPacksDirectory = Path.Combine(pathToResourcesDirectory, "packs");
         if (packagingEnabled && Directory.Exists(pathToPacksDirectory))
         {
-            // When packaging is enabled: include packs, exclude source files
+            // When packaging is enabled: include packs, exclude source files for both client and editor
             var packFileNames = Directory.GetFiles(pathToPacksDirectory, "*.meta");
 
             // Exclude source texture files that were packed
-            clientExcludeFiles.AddRange(
-                packFileNames.SelectMany(
-                    pack =>
+            var packedTextureFiles = packFileNames.SelectMany(
+                pack =>
+                {
+                    try
                     {
-                        try
-                        {
-                            var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
-                            if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
-                            {
-                                return Enumerable.Empty<string>();
-                            }
-
-                            return tokenFrames.Children()
-                                .OfType<JObject>()
-                                .Where(frameObject => frameObject.TryGetValue("filename", out _))
-                                .Select(frameObject => frameObject["filename"]?.Value<string>())
-                                .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                                .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/'))
-                                .OfType<string>();
-                        }
-                        catch
+                        var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
+                        if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
                         {
                             return Enumerable.Empty<string>();
                         }
+
+                        return tokenFrames.Children()
+                            .OfType<JObject>()
+                            .Where(frameObject => frameObject.TryGetValue("filename", out _))
+                            .Select(frameObject => frameObject["filename"]?.Value<string>())
+                            .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                            .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/').ToLower(CultureInfo.CurrentCulture))
+                            .OfType<string>();
                     }
-                )
-            );
+                    catch
+                    {
+                        return Enumerable.Empty<string>();
+                    }
+                }
+            ).ToList();
+            clientExcludeFiles.AddRange(packedTextureFiles);
+            editorExcludeFiles.AddRange(packedTextureFiles);
 
             // Exclude source sound files that were packed
             var soundIndex = Path.Combine(pathToPacksDirectory, "sound.index");
@@ -2223,11 +2223,11 @@ public partial class FrmMain : Form
                 try
                 {
                     using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
-                    clientExcludeFiles.AddRange(
-                        soundPacker.FileList.Select(
-                            sound => Path.Combine(resourcesDirectoryName, "sounds", sound.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
-                        )
-                    );
+                    var packedSoundFiles = soundPacker.FileList.Select(
+                        sound => Path.Combine(resourcesDirectoryName, "sounds", sound.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                    ).ToList();
+                    clientExcludeFiles.AddRange(packedSoundFiles);
+                    editorExcludeFiles.AddRange(packedSoundFiles);
                 }
                 catch
                 {
@@ -2242,11 +2242,11 @@ public partial class FrmMain : Form
                 try
                 {
                     using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
-                    clientExcludeFiles.AddRange(
-                        musicPacker.FileList.Select(
-                            music => Path.Combine(resourcesDirectoryName, "music", music.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
-                        )
-                    );
+                    var packedMusicFiles = musicPacker.FileList.Select(
+                        music => Path.Combine(resourcesDirectoryName, "music", music.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                    ).ToList();
+                    clientExcludeFiles.AddRange(packedMusicFiles);
+                    editorExcludeFiles.AddRange(packedMusicFiles);
                 }
                 catch
                 {
