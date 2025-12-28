@@ -32,6 +32,8 @@ public partial class FrmUploadToServer : DarkDialog
     {
         InitializeComponent();
         Icon = Program.Icon;
+        // Automatically set directory to Editor's current directory
+        _selectedDirectory = Environment.CurrentDirectory;
         LoadSettings();
         FormClosing += FrmUploadToServer_FormClosing;
     }
@@ -58,14 +60,6 @@ public partial class FrmUploadToServer : DarkDialog
         var savedType = Preferences.LoadPreference("upload_type");
         rbEditorAssets.Checked = savedType == "editor";
         rbClientAssets.Checked = !rbEditorAssets.Checked;
-
-        var savedDirectory = Preferences.LoadPreference("upload_lastDirectory");
-        if (!string.IsNullOrWhiteSpace(savedDirectory) && Directory.Exists(savedDirectory))
-        {
-            _selectedDirectory = savedDirectory;
-            txtDirectory.Text = savedDirectory;
-            // Don't enable upload here - let UpdateAuthenticationStatus handle it
-        }
 
         var rawTokenResponse = Preferences.LoadPreference(nameof(TokenResponse));
         if (!string.IsNullOrWhiteSpace(rawTokenResponse))
@@ -96,14 +90,12 @@ public partial class FrmUploadToServer : DarkDialog
         {
             lblStatus.Text = "✓ Authenticated - Ready to upload";
             btnLogin.Text = "Re-Login";
-            // Only enable upload if we have authentication AND a directory selected
-            btnUpload.Enabled = !string.IsNullOrWhiteSpace(_selectedDirectory) && Directory.Exists(_selectedDirectory);
+            btnUpload.Enabled = true;
         }
         else
         {
             lblStatus.Text = "⚠ Not authenticated - Please click the Login button below to authenticate";
             btnLogin.Text = "Login";
-            // Disable upload when not authenticated
             btnUpload.Enabled = false;
         }
 
@@ -311,34 +303,6 @@ public partial class FrmUploadToServer : DarkDialog
     {
         Preferences.SavePreference("upload_serverUrl", txtServerUrl.Text);
         Preferences.SavePreference("upload_type", rbEditorAssets.Checked ? "editor" : "client");
-
-        if (!string.IsNullOrWhiteSpace(_selectedDirectory))
-        {
-            Preferences.SavePreference("upload_lastDirectory", _selectedDirectory);
-        }
-    }
-
-    private void btnBrowse_Click(object sender, EventArgs e)
-    {
-        using var folderDialog = new FolderBrowserDialog
-        {
-            Description = Strings.UploadToServer.SourceDirectoryPrompt,
-            ShowNewFolderButton = false
-        };
-
-        var lastDir = Preferences.LoadPreference("upload_lastDirectory");
-        if (!string.IsNullOrWhiteSpace(lastDir) && Directory.Exists(lastDir))
-        {
-            folderDialog.SelectedPath = lastDir;
-        }
-
-        if (folderDialog.ShowDialog() == DialogResult.OK)
-        {
-            _selectedDirectory = folderDialog.SelectedPath;
-            txtDirectory.Text = _selectedDirectory;
-            // Only enable upload if authenticated
-            btnUpload.Enabled = _tokenResponse != null && !IsTokenExpired(_tokenResponse);
-        }
     }
 
     private async void btnUpload_Click(object sender, EventArgs e)
@@ -367,18 +331,6 @@ public partial class FrmUploadToServer : DarkDialog
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_selectedDirectory) ||
-            !Directory.Exists(_selectedDirectory))
-        {
-            DarkMessageBox.ShowError(
-                Strings.UploadToServer.InvalidDirectory,
-                Strings.UploadToServer.Title,
-                DarkDialogButton.Ok,
-                Icon
-            );
-            return;
-        }
-
         SaveSettings();
 
         // Check if we should package assets before uploading
@@ -394,7 +346,6 @@ public partial class FrmUploadToServer : DarkDialog
         }
 
         btnUpload.Enabled = false;
-        btnBrowse.Enabled = false;
         txtServerUrl.Enabled = false;
         rbClientAssets.Enabled = false;
         rbEditorAssets.Enabled = false;
@@ -419,7 +370,6 @@ public partial class FrmUploadToServer : DarkDialog
         finally
         {
             btnUpload.Enabled = true;
-            btnBrowse.Enabled = true;
             txtServerUrl.Enabled = true;
             rbClientAssets.Enabled = true;
             rbEditorAssets.Enabled = true;
