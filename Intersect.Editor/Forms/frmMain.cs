@@ -21,6 +21,7 @@ using Intersect.GameObjects;
 using Intersect.Localization;
 using Intersect.Network;
 using Intersect.Utilities;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WeifenLuo.WinFormsUI.Docking;
