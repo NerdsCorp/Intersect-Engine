@@ -121,7 +121,7 @@ namespace Intersect.Editor.Forms
             //
             this.lblStatus.AutoSize = true;
             this.lblStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lblStatus.Location = new System.Drawing.Point(12, 187);
+            this.lblStatus.Location = new System.Drawing.Point(12, 185);
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(0, 13);
             this.lblStatus.TabIndex = 8;
@@ -138,7 +138,7 @@ namespace Intersect.Editor.Forms
             //
             // btnLogin
             //
-            this.btnLogin.Location = new System.Drawing.Point(206, 240);
+            this.btnLogin.Location = new System.Drawing.Point(206, 215);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Padding = new System.Windows.Forms.Padding(5);
             this.btnLogin.Size = new System.Drawing.Size(85, 28);
@@ -150,7 +150,7 @@ namespace Intersect.Editor.Forms
             // btnUpload
             //
             this.btnUpload.Enabled = false;
-            this.btnUpload.Location = new System.Drawing.Point(297, 240);
+            this.btnUpload.Location = new System.Drawing.Point(297, 215);
             this.btnUpload.Name = "btnUpload";
             this.btnUpload.Padding = new System.Windows.Forms.Padding(5);
             this.btnUpload.Size = new System.Drawing.Size(85, 28);
@@ -161,7 +161,7 @@ namespace Intersect.Editor.Forms
             // btnClose
             //
             this.btnClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnClose.Location = new System.Drawing.Point(388, 240);
+            this.btnClose.Location = new System.Drawing.Point(388, 215);
             this.btnClose.Name = "btnClose";
             this.btnClose.Padding = new System.Windows.Forms.Padding(5);
             this.btnClose.Size = new System.Drawing.Size(84, 28);

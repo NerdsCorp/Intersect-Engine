@@ -1846,21 +1846,39 @@ public partial class FrmMain : Form
         Globals.PackingProgressForm.SetProgress(Strings.AssetPacking.collecting, 20, false);
         Application.DoEvents();
         var toPack = new HashSet<Texture>();
-        foreach (var tex in GameContentManager.TilesetTextures)
-        {
-            toPack.Add(tex);
-        }
 
-        foreach (var tex in GameContentManager.FogTextures)
+        // Scan all texture directories in the resources folder
+        var textureDirectories = new[]
         {
-            toPack.Add(tex);
-        }
+            "tilesets", "fogs", "gui", "paperdolls", "resources", "spells",
+            "faces", "fonts", "items", "misc", "animations", "entities",
+            "images", "updater"
+        };
 
-        foreach (var tex in GameContentManager.AllTextures)
+        foreach (var dir in textureDirectories)
         {
-            if (!toPack.Contains(tex))
+            var dirPath = Path.Combine(resourcesDirectory, dir);
+            if (!Directory.Exists(dirPath))
             {
-                toPack.Add(tex);
+                continue;
+            }
+
+            var pngFiles = Directory.GetFiles(dirPath, "*.png", SearchOption.TopDirectoryOnly);
+            foreach (var pngFile in pngFiles)
+            {
+                try
+                {
+                    var relativePath = Path.GetRelativePath(rootDirectory, pngFile);
+                    var texture = new Texture(pngFile);
+                    toPack.Add(texture);
+                }
+                catch (Exception ex)
+                {
+                    Intersect.Core.ApplicationContext.Context.Value?.Logger.LogWarning(
+                        ex,
+                        $"Failed to load texture: {pngFile}"
+                    );
+                }
             }
         }
 
@@ -1938,6 +1956,40 @@ public partial class FrmMain : Form
             ".asset",
             musicPackSize
         );
+
+        // Package up fonts if the directory exists
+        var fontsDirectory = Path.Combine(resourcesDirectory, "fonts");
+        if (Directory.Exists(fontsDirectory) && Directory.GetFiles(fontsDirectory, "*.xnb").Length > 0)
+        {
+            Globals.PackingProgressForm.SetProgress("Packing fonts...", 93, false);
+            Application.DoEvents();
+            AssetPacker.PackageAssets(
+                fontsDirectory,
+                "*.xnb",
+                packsDirectory,
+                "fonts.index",
+                "fonts",
+                ".asset",
+                soundPackSize
+            );
+        }
+
+        // Package up updater files if the directory exists
+        var updaterDirectory = Path.Combine(resourcesDirectory, "updater");
+        if (Directory.Exists(updaterDirectory) && Directory.GetFiles(updaterDirectory, "*.*").Length > 0)
+        {
+            Globals.PackingProgressForm.SetProgress("Packing updater files...", 96, false);
+            Application.DoEvents();
+            AssetPacker.PackageAssets(
+                updaterDirectory,
+                "*.*",
+                packsDirectory,
+                "updater.index",
+                "updater",
+                ".asset",
+                soundPackSize
+            );
+        }
 
         Globals.PackingProgressForm.SetProgress(Strings.AssetPacking.done, 100, false);
         Application.DoEvents();
