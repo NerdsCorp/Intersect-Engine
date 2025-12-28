@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -8,12 +11,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DarkUI.Forms;
+using Intersect.Compression;
 using Intersect.Configuration;
 using Intersect.Editor.Core;
 using Intersect.Editor.General;
 using Intersect.Editor.Localization;
 using Intersect.Web;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Intersect.Editor.Forms;
 
@@ -79,6 +84,13 @@ public partial class FrmUploadToServer : DarkDialog
 
     private void UpdateAuthenticationStatus()
     {
+        // Check if token is expired
+        if (_tokenResponse != null && IsTokenExpired(_tokenResponse))
+        {
+            _tokenResponse = null;
+            Preferences.SavePreference(nameof(TokenResponse), string.Empty);
+        }
+
         if (_tokenResponse != null)
         {
             lblStatus.Text = "✓ Authenticated";
@@ -89,6 +101,48 @@ public partial class FrmUploadToServer : DarkDialog
             lblStatus.Text = "⚠ Not authenticated - click Login to authenticate";
             btnLogin.Visible = true;
         }
+
+        // Force UI refresh
+        btnLogin.Refresh();
+        lblStatus.Refresh();
+    }
+
+    private bool IsTokenExpired(TokenResponse token)
+    {
+        // Token typically expires after a certain period (usually 1 hour in most systems)
+        // Since we don't have the issued time, we'll try to parse the JWT to check expiration
+        try
+        {
+            var tokenParts = token.AccessToken.Split('.');
+            if (tokenParts.Length != 3)
+            {
+                return true; // Invalid token format
+            }
+
+            // Decode the payload (second part)
+            var payload = tokenParts[1];
+            // Add padding if needed
+            var paddingNeeded = (4 - payload.Length % 4) % 4;
+            payload = payload + new string('=', paddingNeeded);
+
+            var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            var payloadObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(payloadJson);
+
+            if (payloadObject?.TryGetValue("exp", out var expValue) == true)
+            {
+                var exp = Convert.ToInt64(expValue);
+                var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp);
+                return DateTimeOffset.UtcNow >= expirationTime;
+            }
+        }
+        catch
+        {
+            // If we can't parse the token, consider it expired
+            return true;
+        }
+
+        // If no expiration claim, assume it's still valid
+        return false;
     }
 
     private async void btnLogin_Click(object sender, EventArgs e)
@@ -337,17 +391,289 @@ public partial class FrmUploadToServer : DarkDialog
         }
     }
 
+    private (HashSet<string> excludeFiles, HashSet<string> excludeExtensions, HashSet<string> excludeDirectories, HashSet<string> typeSpecificExcludeFiles, HashSet<string> typeSpecificExcludeDirectories) BuildExclusionLists(string sourceDirectory, bool isEditorUpload)
+    {
+        // Base exclusions that apply to both client and editor
+        var editorBaseName = Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
+        var editorFileNameExe = $"{editorBaseName}.exe";
+        var editorFileNamePdb = $"{editorBaseName}.pdb";
+
+        string[] excludeFiles =
+        [
+            "resources/mapcache.db",
+            "update.json",
+            "version.json",
+            "version.client.json",
+            "version.editor.json",
+            ".gitkeep",
+        ];
+
+        string[] excludeExtensions =
+        [
+            ".dll",
+            ".xml",
+            ".config",
+            ".php",
+        ];
+
+        string[] excludeDirectories =
+        [
+            "logs",
+            "screenshots",
+        ];
+
+        // Type-specific exclusions
+        List<string> typeSpecificExcludeFiles = new();
+        List<string> typeSpecificExcludeDirectories = new();
+
+        if (isEditorUpload)
+        {
+            // Editor upload - exclude client-specific files
+            typeSpecificExcludeFiles.Add("resources/client_strings.json");
+            typeSpecificExcludeDirectories.Add("resources/packs");
+
+            // Process packs if they exist
+            const string resourcesDirectoryName = "resources";
+            var pathToResourcesDirectory = Path.Combine(sourceDirectory, resourcesDirectoryName);
+            var pathToPacksDirectory = Path.Combine(pathToResourcesDirectory, "packs");
+
+            if (Directory.Exists(pathToPacksDirectory))
+            {
+                var packFileNames = Directory.GetFiles(pathToPacksDirectory, "*.meta");
+                typeSpecificExcludeFiles.AddRange(packFileNames.Select(f => Path.GetRelativePath(sourceDirectory, f).Replace('\\', '/')));
+
+                typeSpecificExcludeFiles.AddRange(
+                    packFileNames.SelectMany(pack =>
+                    {
+                        try
+                        {
+                            var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
+                            if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
+                            {
+                                return Enumerable.Empty<string>();
+                            }
+
+                            return tokenFrames.Children()
+                                .OfType<JObject>()
+                                .Where(frameObject => frameObject.TryGetValue("filename", out _))
+                                .Select(frameObject => frameObject["filename"]?.Value<string>())
+                                .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                                .OfType<string>();
+                        }
+                        catch
+                        {
+                            return Enumerable.Empty<string>();
+                        }
+                    })
+                );
+
+                var soundIndex = Path.Combine(pathToPacksDirectory, "sound.index");
+                if (File.Exists(soundIndex))
+                {
+                    typeSpecificExcludeFiles.Add(Path.GetRelativePath(sourceDirectory, soundIndex).Replace('\\', '/'));
+                    try
+                    {
+                        using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
+                        typeSpecificExcludeFiles.AddRange(
+                            soundPacker.CachedPackages.Select(
+                                cachedPackage => Path.Combine("resources/packs", cachedPackage).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+
+                var musicIndex = Path.Combine(pathToPacksDirectory, "music.index");
+                if (File.Exists(musicIndex))
+                {
+                    typeSpecificExcludeFiles.Add(Path.GetRelativePath(sourceDirectory, musicIndex).Replace('\\', '/'));
+                    try
+                    {
+                        using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
+                        typeSpecificExcludeFiles.AddRange(
+                            musicPacker.CachedPackages.Select(
+                                cachedPackage => Path.Combine("resources/packs", cachedPackage).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Client upload - exclude editor-specific files
+            typeSpecificExcludeFiles.Add(editorFileNameExe);
+            typeSpecificExcludeFiles.Add(editorFileNamePdb);
+            typeSpecificExcludeFiles.Add("resources/editor_strings.json");
+            typeSpecificExcludeDirectories.Add("resources/cursors");
+
+            // Process packs to exclude source files
+            const string resourcesDirectoryName = "resources";
+            var pathToResourcesDirectory = Path.Combine(sourceDirectory, resourcesDirectoryName);
+            var pathToPacksDirectory = Path.Combine(pathToResourcesDirectory, "packs");
+
+            if (Directory.Exists(pathToPacksDirectory))
+            {
+                var packFileNames = Directory.GetFiles(pathToPacksDirectory, "*.meta");
+                typeSpecificExcludeFiles.AddRange(
+                    packFileNames.SelectMany(pack =>
+                    {
+                        try
+                        {
+                            var tokenPack = JToken.Parse(GzipCompression.ReadDecompressedString(pack));
+                            if (tokenPack is not JObject objectPack || !objectPack.TryGetValue("frames", out var tokenFrames))
+                            {
+                                return Enumerable.Empty<string>();
+                            }
+
+                            return tokenFrames.Children()
+                                .OfType<JObject>()
+                                .Where(frameObject => frameObject.TryGetValue("filename", out _))
+                                .Select(frameObject => frameObject["filename"]?.Value<string>())
+                                .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                                .Select(filename => Path.Combine(resourcesDirectoryName, filename!).Replace('\\', '/'))
+                                .OfType<string>();
+                        }
+                        catch
+                        {
+                            return Enumerable.Empty<string>();
+                        }
+                    })
+                );
+
+                var soundIndex = Path.Combine(pathToPacksDirectory, "sound.index");
+                if (File.Exists(soundIndex))
+                {
+                    try
+                    {
+                        using AssetPacker soundPacker = new(soundIndex, pathToPacksDirectory);
+                        typeSpecificExcludeFiles.AddRange(
+                            soundPacker.FileList.Select(
+                                sound => Path.Combine(resourcesDirectoryName, "sounds", sound.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+
+                var musicIndex = Path.Combine(pathToPacksDirectory, "music.index");
+                if (File.Exists(musicIndex))
+                {
+                    try
+                    {
+                        using AssetPacker musicPacker = new(musicIndex, pathToPacksDirectory);
+                        typeSpecificExcludeFiles.AddRange(
+                            musicPacker.FileList.Select(
+                                music => Path.Combine(resourcesDirectoryName, "music", music.ToLower(CultureInfo.CurrentCulture)).Replace('\\', '/')
+                            )
+                        );
+                    }
+                    catch
+                    {
+                        // Ignore packer errors
+                    }
+                }
+            }
+        }
+
+        return (
+            excludeFiles.ToHashSet(),
+            excludeExtensions.ToHashSet(),
+            excludeDirectories.ToHashSet(),
+            typeSpecificExcludeFiles.ToHashSet(),
+            typeSpecificExcludeDirectories.ToHashSet()
+        );
+    }
+
+    private bool ShouldExcludeFile(string relativePath, string relativeDirectoryPath, string extension,
+        HashSet<string> excludeFiles, HashSet<string> excludeExtensions, HashSet<string> excludeDirectories,
+        HashSet<string> typeSpecificExcludeFiles, HashSet<string> typeSpecificExcludeDirectories)
+    {
+        // Normalize paths for comparison
+        var normalizedRelativePath = relativePath.Replace('\\', '/');
+        var normalizedDirectoryPath = relativeDirectoryPath.Replace('\\', '/');
+
+        // Check if the file's directory is excluded
+        if (typeSpecificExcludeDirectories.Any(dir => normalizedDirectoryPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        if (excludeDirectories.Any(dir => normalizedDirectoryPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        // Check if the file itself is excluded
+        if (excludeFiles.Contains(normalizedRelativePath))
+        {
+            return true;
+        }
+
+        if (typeSpecificExcludeFiles.Contains(normalizedRelativePath.ToLower(CultureInfo.CurrentCulture)))
+        {
+            return true;
+        }
+
+        // Check if the extension is excluded
+        if (excludeExtensions.Contains(extension))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private async Task PerformUpload()
     {
         var uploadType = rbEditorAssets.Checked ? "editor" : "client";
+        var isEditorUpload = rbEditorAssets.Checked;
         var serverUrl = txtServerUrl.Text.TrimEnd('/');
         var endpoint = $"{serverUrl}/api/v1/editor/updates/{uploadType}";
 
-        var files = Directory.GetFiles(
+        // Build exclusion lists
+        var (excludeFiles, excludeExtensions, excludeDirectories, typeSpecificExcludeFiles, typeSpecificExcludeDirectories) =
+            BuildExclusionLists(_selectedDirectory!, isEditorUpload);
+
+        // Get all files and filter them
+        var allFiles = Directory.GetFiles(
             _selectedDirectory!,
             "*.*",
             SearchOption.AllDirectories
         );
+
+        var files = allFiles.Where(filePath =>
+        {
+            var fileInfo = new FileInfo(filePath);
+            var relativePath = Path.GetRelativePath(_selectedDirectory!, filePath).Replace('\\', '/');
+            var relativeDirectoryPath = Path.GetRelativePath(_selectedDirectory!, fileInfo.DirectoryName ?? _selectedDirectory!).Replace('\\', '/');
+
+            if (relativeDirectoryPath == ".")
+            {
+                relativeDirectoryPath = "";
+            }
+
+            return !ShouldExcludeFile(
+                relativePath,
+                relativeDirectoryPath,
+                fileInfo.Extension,
+                excludeFiles,
+                excludeExtensions,
+                excludeDirectories,
+                typeSpecificExcludeFiles,
+                typeSpecificExcludeDirectories
+            );
+        }).ToArray();
 
         var totalFiles = files.Length;
         var uploadedFiles = 0;
@@ -399,8 +725,13 @@ public partial class FrmUploadToServer : DarkDialog
                     if (response.StatusCode ==
                         System.Net.HttpStatusCode.Unauthorized)
                     {
+                        // Clear the invalid token
+                        _tokenResponse = null;
+                        Preferences.SavePreference(nameof(TokenResponse), string.Empty);
+                        Invoke(new Action(UpdateAuthenticationStatus));
+
                         throw new Exception(
-                            "Authentication required. Please ensure you have logged in with developer credentials."
+                            "Authentication failed. Your session may have expired. Please login again."
                         );
                     }
 
