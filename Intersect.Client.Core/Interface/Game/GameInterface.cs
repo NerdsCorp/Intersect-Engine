@@ -8,6 +8,7 @@ using Intersect.Client.Interface.Game.Crafting;
 using Intersect.Client.Interface.Game.DescriptionWindows;
 using Intersect.Client.Interface.Game.EntityPanel;
 using Intersect.Client.Interface.Game.Hotbar;
+using Intersect.Client.Interface.Game.Housing;
 using Intersect.Client.Interface.Game.Inventory;
 using Intersect.Client.Interface.Game.Shop;
 using Intersect.Client.Interface.Game.Trades;
@@ -101,9 +102,9 @@ public partial class GameInterface : MutableInterface
     private TradingWindow? mTradingWindow;
 
     //Player Housing Windows
-    private object? _houseWindow; // TODO: Replace with actual HouseWindow type when implemented
-    private object? _furnitureStorageWindow; // TODO: Replace with actual FurnitureStorageWindow type when implemented
-    private object? _publicHouseBrowserWindow; // TODO: Replace with actual PublicHouseBrowserWindow type when implemented
+    private HouseWindow? _houseWindow;
+    private FurnitureStorageWindow? _furnitureStorageWindow;
+    private PublicHouseBrowserWindow? _publicHouseBrowserWindow;
 
     public EntityBox PlayerBox;
 
@@ -391,34 +392,30 @@ public partial class GameInterface : MutableInterface
 
     public void OpenHouse()
     {
-        // TODO: Create actual HouseWindow when implemented
-        // _houseWindow = new HouseWindow(GameCanvas) { DeleteOnClose = true };
+        _houseWindow = new HouseWindow(GameCanvas) { DeleteOnClose = true };
         mShouldOpenHouse = false;
         Globals.InHouse = true;
     }
 
     public void CloseHouse()
     {
-        // TODO: Close actual HouseWindow when implemented
-        // _houseWindow?.Close();
-        // _houseWindow = null;
+        _houseWindow?.Close();
+        _houseWindow = null;
         mShouldCloseHouse = false;
         Globals.InHouse = false;
     }
 
     public void OpenFurnitureStorage()
     {
-        // TODO: Create actual FurnitureStorageWindow when implemented
-        // _furnitureStorageWindow = new FurnitureStorageWindow(GameCanvas) { DeleteOnClose = true };
+        _furnitureStorageWindow = new FurnitureStorageWindow(GameCanvas) { DeleteOnClose = true };
         mShouldOpenFurnitureStorage = false;
         Globals.InFurnitureStorage = true;
     }
 
     public void CloseFurnitureStorage()
     {
-        // TODO: Close actual FurnitureStorageWindow when implemented
-        // _furnitureStorageWindow?.Close();
-        // _furnitureStorageWindow = null;
+        _furnitureStorageWindow?.Close();
+        _furnitureStorageWindow = null;
         mShouldCloseFurnitureStorage = false;
         Globals.InFurnitureStorage = false;
     }
@@ -605,11 +602,17 @@ public partial class GameInterface : MutableInterface
         {
             CloseHouse();
         }
-        // TODO: Add house window update when implemented
-        // else
-        // {
-        //     _houseWindow?.Update();
-        // }
+        else
+        {
+            _houseWindow?.Update();
+
+            // Update specific slot if server sent update
+            if (mHouseFurnitureSlotUpdate >= 0)
+            {
+                _houseWindow?.UpdateFurnitureSlot(mHouseFurnitureSlotUpdate);
+                mHouseFurnitureSlotUpdate = -1;
+            }
+        }
 
         //Furniture Storage Update
         if (mShouldOpenFurnitureStorage)
@@ -621,11 +624,17 @@ public partial class GameInterface : MutableInterface
         {
             CloseFurnitureStorage();
         }
-        // TODO: Add furniture storage window update when implemented
-        // else
-        // {
-        //     _furnitureStorageWindow?.Update();
-        // }
+        else
+        {
+            _furnitureStorageWindow?.Update();
+
+            // Update specific slot if server sent update
+            if (mFurnitureStorageSlotUpdate >= 0)
+            {
+                _furnitureStorageWindow?.UpdateStorageSlot(mFurnitureStorageSlotUpdate);
+                mFurnitureStorageSlotUpdate = -1;
+            }
+        }
 
         if (FocusChat)
         {
