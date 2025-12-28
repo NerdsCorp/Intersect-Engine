@@ -59,7 +59,7 @@ public sealed class EditorUpdatesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.Forbidden, ContentTypes.Json)]
     public async Task<IActionResult> UploadClientFiles(
-        [FromForm] string? subfolder = null
+        [FromQuery] string? subfolder = null
     )
     {
         return await UploadFilesInternal("client", Request.Form.Files, subfolder);
@@ -78,7 +78,7 @@ public sealed class EditorUpdatesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.BadRequest, ContentTypes.Json)]
     [ProducesResponseType(typeof(ErrorResponse), (int)HttpStatusCode.Forbidden, ContentTypes.Json)]
     public async Task<IActionResult> UploadEditorFiles(
-        [FromForm] string? subfolder = null
+        [FromQuery] string? subfolder = null
     )
     {
         return await UploadFilesInternal("editor", Request.Form.Files, subfolder);
