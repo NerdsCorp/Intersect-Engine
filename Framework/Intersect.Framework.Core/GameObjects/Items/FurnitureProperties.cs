@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Intersect.Enums;
 using Intersect.Framework.Core.GameObjects.Crafting;
 using Intersect.Framework.Core.GameObjects.Events;
-using Intersect.Framework.Core.GameObjects.Shops;
 using Intersect.GameObjects;
 using Newtonsoft.Json;
 

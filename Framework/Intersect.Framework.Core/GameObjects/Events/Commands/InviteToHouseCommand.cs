@@ -1,4 +1,4 @@
-using Intersect.Server.Database.PlayerData.Players;
+using Intersect.Enums;
 
 namespace Intersect.Framework.Core.GameObjects.Events.Commands;
 

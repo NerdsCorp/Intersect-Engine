@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations.Schema;
 using Intersect.Collections.Slotting;
 using Intersect.Core;
+using Intersect.Enums;
 using Intersect.Framework.Core;
 using Intersect.Server.Entities;
 using Intersect.Server.Networking;
@@ -499,30 +500,4 @@ public partial class PlayerHouse
             ApplicationContext.Context.Value?.Logger.LogInformation($"[House][{Id}] Removed from cache after owner logged out");
         }
     }
-}
-
-/// <summary>
-/// Defines permission levels for house visitors.
-/// </summary>
-public enum HousePermission
-{
-    /// <summary>
-    /// No access to the house.
-    /// </summary>
-    None = 0,
-
-    /// <summary>
-    /// Can view the house but not modify anything.
-    /// </summary>
-    View = 1,
-
-    /// <summary>
-    /// Can view and modify furniture.
-    /// </summary>
-    Modify = 2,
-
-    /// <summary>
-    /// Owner of the house with full permissions.
-    /// </summary>
-    Owner = 99
 }

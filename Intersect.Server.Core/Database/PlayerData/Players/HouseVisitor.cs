@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using Intersect.Enums;
 using Newtonsoft.Json;
 
 namespace Intersect.Server.Database.PlayerData.Players;
