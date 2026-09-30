@@ -483,14 +483,22 @@ public sealed class LiteNetLibInterface : INetworkLayerInterface, INetEventListe
 
     public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
     {
-#if !DIAGNOSTIC
-        if (latency < 1)
+
+#if DIAGNOSTIC
+        var logLatencyUpdate = true;
+#else
+        if (latency < 0)
         {
             return;
         }
+
+        var logLatencyUpdate = latency > 0;
 #endif
 
-        ApplicationContext.CurrentContext.Logger.LogTrace("LATENCY {Peer} {Latency}ms", peer, latency);
+        if (logLatencyUpdate)
+        {
+            ApplicationContext.CurrentContext.Logger.LogTrace("LATENCY {Peer} {Latency}ms", peer, latency);
+        }
 
         if (!_connectionIdLookup.TryGetValue(peer.Id, out var connectionId))
         {
